@@ -413,6 +413,10 @@ export type Database = {
         Args: { p_completion_id: string; p_reviewer_id: string }
         Returns: undefined
       }
+      approve_redemption: {
+        Args: { p_redemption_id: string; p_reviewer_id: string }
+        Returns: undefined
+      }
       complete_task: {
         Args: {
           p_completed_by: string
@@ -432,12 +436,20 @@ export type Database = {
       }
       current_user_family_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      redeem_reward: {
+        Args: { p_redeemed_by: string; p_reward_id: string }
+        Returns: Json
+      }
       reject_completion: {
         Args: {
           p_completion_id: string
           p_note?: string
           p_reviewer_id: string
         }
+        Returns: undefined
+      }
+      reject_redemption: {
+        Args: { p_redemption_id: string; p_reviewer_id: string }
         Returns: undefined
       }
     }
