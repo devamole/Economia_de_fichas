@@ -199,8 +199,7 @@ i18n is set up in **Phase 0**, not retrofitted. This is non-negotiable.
 **Goal:** Supabase project created and JS clients connected from Next.js.
 
 **Steps:**
-1. Use the following information to complete the next steps: NEXT_PUBLIC_SUPABASE_URL=https://czalgwkyxqcqsmvyznbz.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_jBm596p-g0ygNRXKQhg-8A_WzikX418
+1. Use the Supabase project credentials from `.env.local` (see `.env.example` for the required keys).
 2. Copy `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `.env.local` and `.env.example`.
 3. Install `@supabase/supabase-js` and `@supabase/ssr`.
 4. Create `src/lib/supabase/client.ts` (browser client) and `src/lib/supabase/server.ts` (server client with cookies).
