@@ -14,13 +14,12 @@ export default async function ParentLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  const profile = profileData as { role: string } | null;
   if (!profile || profile.role !== "parent") {
     redirect("/child/today");
   }

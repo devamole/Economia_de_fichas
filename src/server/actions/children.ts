@@ -70,13 +70,12 @@ export async function createChild(_prev: unknown, formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado." };
 
-  const { data: profileData } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("family_id")
     .eq("id", user.id)
     .single();
 
-  const profile = profileData as { family_id: string } | null;
   if (!profile) return { error: "Perfil no encontrado." };
 
   // Create auth user with synthetic email + PIN as password.

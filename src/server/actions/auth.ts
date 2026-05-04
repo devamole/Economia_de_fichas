@@ -36,16 +36,12 @@ export async function signUpParent(_prev: unknown, formData: FormData) {
   }
 
   // Create family + parent profile atomically via DB function.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: fnError } = await (supabase as any).rpc(
-    "create_family_with_parent",
-    {
-      p_user_id: authData.user.id,
-      p_family_name: familyName,
-      p_display_name: displayName,
-      p_locale: "es",
-    },
-  );
+  const { error: fnError } = await supabase.rpc("create_family_with_parent", {
+    p_user_id: authData.user.id,
+    p_family_name: familyName,
+    p_display_name: displayName,
+    p_locale: "es",
+  });
 
   if (fnError) {
     return { error: "Error al configurar la familia. " + fnError.message };

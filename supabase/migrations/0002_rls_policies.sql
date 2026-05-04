@@ -3,10 +3,10 @@
 -- Row Level Security: strict family isolation.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- ── Helper functions ──────────────────────────────────────────────────────────
+-- ── Helper functions (in public schema — auth schema is managed by Supabase) ──
 
 -- Returns the family_id of the currently authenticated user.
-create or replace function auth.user_family_id()
+create or replace function public.current_user_family_id()
 returns uuid
 language sql
 stable
@@ -17,7 +17,7 @@ as $$
 $$;
 
 -- Returns the role ('parent' | 'child') of the currently authenticated user.
-create or replace function auth.user_role()
+create or replace function public.current_user_role()
 returns text
 language sql
 stable
@@ -40,73 +40,60 @@ alter table public.reminder_log        enable row level security;
 
 -- ── families ──────────────────────────────────────────────────────────────────
 
--- Members can read their own family.
 create policy "families_select_own"
   on public.families for select
-  using (id = auth.user_family_id());
+  using (id = public.current_user_family_id());
 
--- Only parents can update family details.
 create policy "families_update_parent"
   on public.families for update
-  using (id = auth.user_family_id() and auth.user_role() = 'parent')
-  with check (id = auth.user_family_id() and auth.user_role() = 'parent');
+  using (id = public.current_user_family_id() and public.current_user_role() = 'parent')
+  with check (id = public.current_user_family_id() and public.current_user_role() = 'parent');
 
 -- ── profiles ──────────────────────────────────────────────────────────────────
 
--- Members can read profiles in their family.
 create policy "profiles_select_family"
   on public.profiles for select
-  using (family_id = auth.user_family_id());
+  using (family_id = public.current_user_family_id());
 
--- Users can update their own profile.
 create policy "profiles_update_own"
   on public.profiles for update
   using (id = auth.uid())
   with check (id = auth.uid());
 
--- Parents can insert child profiles (handled via service-role in server action).
--- INSERT is done server-side with service-role — no public INSERT policy needed.
-
 -- ── tasks ─────────────────────────────────────────────────────────────────────
 
--- Family members can read tasks in their family.
 create policy "tasks_select_family"
   on public.tasks for select
-  using (family_id = auth.user_family_id());
+  using (family_id = public.current_user_family_id());
 
--- Only parents can create tasks.
 create policy "tasks_insert_parent"
   on public.tasks for insert
   with check (
-    family_id = auth.user_family_id()
-    and auth.user_role() = 'parent'
+    family_id = public.current_user_family_id()
+    and public.current_user_role() = 'parent'
   );
 
--- Only parents can update tasks.
 create policy "tasks_update_parent"
   on public.tasks for update
-  using (family_id = auth.user_family_id() and auth.user_role() = 'parent')
-  with check (family_id = auth.user_family_id() and auth.user_role() = 'parent');
+  using (family_id = public.current_user_family_id() and public.current_user_role() = 'parent')
+  with check (family_id = public.current_user_family_id() and public.current_user_role() = 'parent');
 
--- Only parents can delete tasks.
 create policy "tasks_delete_parent"
   on public.tasks for delete
-  using (family_id = auth.user_family_id() and auth.user_role() = 'parent');
+  using (family_id = public.current_user_family_id() and public.current_user_role() = 'parent');
 
 -- ── task_completions ──────────────────────────────────────────────────────────
 
--- Family members can read completions (parent sees all; kid sees their own).
 create policy "completions_select_family"
   on public.task_completions for select
   using (
     exists (
       select 1 from public.tasks t
       where t.id = task_id
-        and t.family_id = auth.user_family_id()
+        and t.family_id = public.current_user_family_id()
     )
   );
 
--- A kid can mark a task as complete only if that task is assigned to them.
 create policy "completions_insert_assigned_kid"
   on public.task_completions for insert
   with check (
@@ -119,23 +106,22 @@ create policy "completions_insert_assigned_kid"
     )
   );
 
--- Only parents can approve / reject (update status, reviewed_by, etc.).
 create policy "completions_update_parent"
   on public.task_completions for update
   using (
-    auth.user_role() = 'parent'
+    public.current_user_role() = 'parent'
     and exists (
       select 1 from public.tasks t
       where t.id = task_id
-        and t.family_id = auth.user_family_id()
+        and t.family_id = public.current_user_family_id()
     )
   )
   with check (
-    auth.user_role() = 'parent'
+    public.current_user_role() = 'parent'
     and exists (
       select 1 from public.tasks t
       where t.id = task_id
-        and t.family_id = auth.user_family_id()
+        and t.family_id = public.current_user_family_id()
     )
   );
 
@@ -143,24 +129,23 @@ create policy "completions_update_parent"
 
 create policy "rewards_select_family"
   on public.rewards for select
-  using (family_id = auth.user_family_id());
+  using (family_id = public.current_user_family_id());
 
 create policy "rewards_insert_parent"
   on public.rewards for insert
-  with check (family_id = auth.user_family_id() and auth.user_role() = 'parent');
+  with check (family_id = public.current_user_family_id() and public.current_user_role() = 'parent');
 
 create policy "rewards_update_parent"
   on public.rewards for update
-  using (family_id = auth.user_family_id() and auth.user_role() = 'parent')
-  with check (family_id = auth.user_family_id() and auth.user_role() = 'parent');
+  using (family_id = public.current_user_family_id() and public.current_user_role() = 'parent')
+  with check (family_id = public.current_user_family_id() and public.current_user_role() = 'parent');
 
 create policy "rewards_delete_parent"
   on public.rewards for delete
-  using (family_id = auth.user_family_id() and auth.user_role() = 'parent');
+  using (family_id = public.current_user_family_id() and public.current_user_role() = 'parent');
 
 -- ── reward_redemptions ────────────────────────────────────────────────────────
 
--- Family members can read redemptions in their family.
 create policy "redemptions_select_family"
   on public.reward_redemptions for select
   using (
@@ -172,7 +157,6 @@ create policy "redemptions_select_family"
     )
   );
 
--- Kids (and parents) can request a redemption for themselves.
 create policy "redemptions_insert_self"
   on public.reward_redemptions for insert
   with check (
@@ -180,34 +164,32 @@ create policy "redemptions_insert_self"
     and exists (
       select 1 from public.rewards r
       where r.id = reward_id
-        and r.family_id = auth.user_family_id()
+        and r.family_id = public.current_user_family_id()
         and r.active = true
     )
   );
 
--- Parents can update (approve/reject/fulfill) redemptions in their family.
 create policy "redemptions_update_parent"
   on public.reward_redemptions for update
   using (
-    auth.user_role() = 'parent'
+    public.current_user_role() = 'parent'
     and exists (
       select 1 from public.rewards r
       where r.id = reward_id
-        and r.family_id = auth.user_family_id()
+        and r.family_id = public.current_user_family_id()
     )
   )
   with check (
-    auth.user_role() = 'parent'
+    public.current_user_role() = 'parent'
     and exists (
       select 1 from public.rewards r
       where r.id = reward_id
-        and r.family_id = auth.user_family_id()
+        and r.family_id = public.current_user_family_id()
     )
   );
 
 -- ── push_subscriptions ────────────────────────────────────────────────────────
 
--- Users can only see their own subscriptions.
 create policy "push_subs_select_own"
   on public.push_subscriptions for select
   using (profile_id = auth.uid());
@@ -227,19 +209,16 @@ create policy "push_subs_delete_own"
 
 -- ── reminder_log ──────────────────────────────────────────────────────────────
 
--- Readable by the profile it concerns or by their parent.
 create policy "reminder_log_select_family"
   on public.reminder_log for select
   using (
     profile_id = auth.uid()
     or (
-      auth.user_role() = 'parent'
+      public.current_user_role() = 'parent'
       and exists (
         select 1 from public.profiles p
         where p.id = profile_id
-          and p.family_id = auth.user_family_id()
+          and p.family_id = public.current_user_family_id()
       )
     )
   );
-
--- Insertions are done by Edge Functions using service-role — no public INSERT policy.
