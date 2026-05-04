@@ -409,6 +409,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_completion: {
+        Args: { p_completion_id: string; p_reviewer_id: string }
+        Returns: undefined
+      }
+      complete_task: {
+        Args: {
+          p_completed_by: string
+          p_completion_date: string
+          p_task_id: string
+        }
+        Returns: Json
+      }
       create_family_with_parent: {
         Args: {
           p_display_name: string
@@ -420,6 +432,14 @@ export type Database = {
       }
       current_user_family_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      reject_completion: {
+        Args: {
+          p_completion_id: string
+          p_note?: string
+          p_reviewer_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
