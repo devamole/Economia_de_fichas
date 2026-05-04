@@ -47,7 +47,7 @@ export async function signUpParent(_prev: unknown, formData: FormData) {
     return { error: "Error al configurar la familia. " + fnError.message };
   }
 
-  redirect("/es/dashboard");
+  redirect("/es/parent/dashboard");
 }
 
 // ── Sign-in (parent) ─────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export async function signInParent(_prev: unknown, formData: FormData) {
     return { error: "Correo o contraseña incorrectos." };
   }
 
-  redirect("/es/dashboard");
+  redirect("/es/parent/dashboard");
 }
 
 // ── Sign-out ──────────────────────────────────────────────────────────────────
