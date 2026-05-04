@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createChildSchema } from "@/lib/schemas/auth";
 
@@ -31,9 +32,7 @@ export async function signInChild(
 
   const supabase = await createClient();
 
-  // Resolve the synthetic email from the profile id.
   const syntheticEmail = `child-${profileId}@app.local`;
-
   const { error } = await supabase.auth.signInWithPassword({
     email: syntheticEmail,
     password: pin,
@@ -43,11 +42,10 @@ export async function signInChild(
     return { error: "PIN incorrecto. Inténtalo de nuevo." };
   }
 
-  // Redirect handled client-side after successful action.
   return {};
 }
 
-// ── Create a child profile (called by parent, server-side) ───────────────────
+// ── Create a child profile via Edge Function ──────────────────────────────────
 
 export async function createChild(_prev: unknown, formData: FormData) {
   const raw = {
@@ -64,10 +62,7 @@ export async function createChild(_prev: unknown, formData: FormData) {
   const { displayName, emoji, pin } = parsed.data;
   const supabase = await createClient();
 
-  // Get the parent's family id.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado." };
 
   const { data: profile } = await supabase
@@ -75,17 +70,31 @@ export async function createChild(_prev: unknown, formData: FormData) {
     .select("family_id")
     .eq("id", user.id)
     .single();
-
   if (!profile) return { error: "Perfil no encontrado." };
 
-  // Create auth user with synthetic email + PIN as password.
-  // This requires service-role in production — for now uses the anon key
-  // which means this needs a Supabase Edge Function in Task 1.5 final form.
-  // Placeholder: return the data structure for now.
-  return {
-    pending: true,
-    message:
-      "Creación de niños requiere la clave de servicio (se completa en Task 1.5).",
-    data: { displayName, emoji, familyId: profile.family_id },
-  };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { error: "Sesión expirada." };
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const res = await fetch(`${supabaseUrl}/functions/v1/create-child`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      displayName,
+      emoji: emoji ?? "🧒",
+      pin,
+      familyId: profile.family_id,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: (body as { error?: string }).error ?? "Error al crear el niño." };
+  }
+
+  revalidatePath("/parent/children");
+  return {};
 }

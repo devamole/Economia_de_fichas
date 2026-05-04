@@ -1,12 +1,27 @@
-import { useTranslations } from "next-intl";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
-  const t = useTranslations("common");
+export default async function RootPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-3xl font-bold">{t("appName")}</h1>
-      <p>{t("loading")}</p>
-    </main>
-  );
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  if (profile.role === "parent") {
+    redirect("/parent/tasks");
+  } else {
+    redirect("/child/today");
+  }
 }
