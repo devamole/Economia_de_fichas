@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { completeTask } from "@/server/actions/completions";
 import { useCelebrate } from "@/components/celebrate";
+import { enqueue } from "@/lib/offline/queue";
 import type { Task, TaskCompletion, Profile } from "@/types";
 
 interface Props {
@@ -47,6 +48,14 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
     // Optimistically mark as complete
     addOptimistic(task.id);
+
+    // If offline, queue for later sync and celebrate optimistically
+    if (!navigator.onLine) {
+      await enqueue("completeTask", { taskId: task.id, completionDate: todayStr });
+      celebrate();
+      toast("Sin conexión — se sincronizará cuando vuelvas online 📡");
+      return;
+    }
 
     const result = await completeTask(task.id, todayStr);
 

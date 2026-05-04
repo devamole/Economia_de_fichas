@@ -4,6 +4,12 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
+import { useOfflineSync } from "@/lib/offline/use-sync";
+
+function SyncProvider() {
+  useOfflineSync();
+  return null;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -27,6 +33,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         {children}
+        <SyncProvider />
         <Toaster richColors position="top-center" />
       </ThemeProvider>
     </QueryClientProvider>
