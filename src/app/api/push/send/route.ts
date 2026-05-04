@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { createClient } from "@/lib/supabase/server";
 
-webpush.setVapidDetails(
-  "mailto:noreply@fichas.app",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  webpush.setVapidDetails(
+    "mailto:noreply@fichas.app",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
+  );
   const { userId, title, body, url } = await req.json();
   if (!userId || !title || !body) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
