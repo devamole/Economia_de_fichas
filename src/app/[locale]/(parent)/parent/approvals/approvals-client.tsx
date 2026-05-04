@@ -35,6 +35,8 @@ export function ApprovalsClient({
   redemptions: RedemptionRow[];
 }) {
   const [tab, setTab] = useState<Tab>("tasks");
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
 
   const [completions, removeCompletion] = useOptimistic(
     initialCompletions,
@@ -54,10 +56,19 @@ export function ApprovalsClient({
   }
 
   async function handleReject(id: string) {
+    setRejectingId(id);
+    setRejectNote("");
+  }
+
+  async function confirmReject() {
+    if (!rejectingId) return;
+    const id = rejectingId;
+    setRejectingId(null);
     removeCompletion(id);
-    const result = await rejectCompletion(id);
+    const result = await rejectCompletion(id, rejectNote || undefined);
     if ("error" in result && result.error) toast.error(result.error);
     else toast("Rechazado");
+    setRejectNote("");
   }
 
   async function handleApproveRedemption(id: string) {

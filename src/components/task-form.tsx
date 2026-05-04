@@ -45,11 +45,12 @@ interface TaskFormProps {
   task?: Task | null;
   kids: Pick<Profile, "id" | "display_name" | "emoji">[];
   onSuccess?: () => void;
+  initialStartDate?: string;
 }
 
 type State = { error?: string } | null;
 
-export function TaskForm({ open, onOpenChange, task, kids, onSuccess }: TaskFormProps) {
+export function TaskForm({ open, onOpenChange, task, kids, onSuccess, initialStartDate }: TaskFormProps) {
   const t = useTranslations("tasks");
   const isEdit = !!task;
   const action = isEdit ? updateTask : createTask;
@@ -221,7 +222,7 @@ export function TaskForm({ open, onOpenChange, task, kids, onSuccess }: TaskForm
                 id="startDate"
                 name="startDate"
                 type="date"
-                defaultValue={task?.start_date ?? new Date().toISOString().slice(0, 10)}
+                defaultValue={task?.start_date ?? initialStartDate ?? new Date().toISOString().slice(0, 10)}
                 required
                 className="rounded-xl h-12"
               />
