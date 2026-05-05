@@ -1,23 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { createChildSchema } from "@/lib/schemas/auth";
+
+type FamilyProfile = { id: string; display_name: string; emoji: string | null; role: string };
+type FamilyLookup = { id: string; name: string; profiles: FamilyProfile[] | null };
 
 // ── Get profiles by family code (public lookup, no auth needed) ───────────────
 
 export async function getProfilesByFamilyCode(familyCode: string) {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from("families")
-    .select("id, name, profiles(id, display_name, emoji, role)")
-    .eq("family_code", familyCode.toUpperCase())
-    .single();
+    .rpc("lookup_family_by_code", { p_code: familyCode });
 
   if (error || !data) return { error: "Código de familia no encontrado." };
 
-  return { family: data };
+  return { family: data as FamilyLookup };
 }
 
 // ── Sign-in a kid with PIN ────────────────────────────────────────────────────

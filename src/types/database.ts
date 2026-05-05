@@ -413,6 +413,10 @@ export type Database = {
         Args: { p_completion_id: string; p_reviewer_id: string }
         Returns: undefined
       }
+      lookup_family_by_code: {
+        Args: { p_code: string }
+        Returns: Json
+      }
       approve_redemption: {
         Args: { p_redemption_id: string; p_reviewer_id: string }
         Returns: undefined
