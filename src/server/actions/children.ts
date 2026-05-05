@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { createChildSchema } from "@/lib/schemas/auth";
 
 // ── Get profiles by family code (public lookup, no auth needed) ───────────────
 
 export async function getProfilesByFamilyCode(familyCode: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("families")
