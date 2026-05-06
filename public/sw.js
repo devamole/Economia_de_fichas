@@ -1,7 +1,7 @@
-const CACHE_NAME = "fichas-v1";
-const OFFLINE_URL = "/offline";
+const CACHE_NAME = "fichas-v2";
+const OFFLINE_URL = "/offline.html";
 const STATIC_ASSETS = [
-  "/offline",
+  "/offline.html",
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
