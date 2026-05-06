@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { useOfflineSync } from "@/lib/offline/use-sync";
+import { SyncIndicator } from "@/components/sync-indicator";
 
 function SyncProvider() {
   useOfflineSync();
@@ -34,6 +35,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         {children}
         <SyncProvider />
+        <SyncIndicator />
         <Toaster richColors position="top-center" />
       </ThemeProvider>
     </QueryClientProvider>

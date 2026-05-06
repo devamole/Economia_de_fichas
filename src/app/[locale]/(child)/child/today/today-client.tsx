@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useOptimistic, useRef } from "react";
+import { useState, useOptimistic, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, Clock } from "lucide-react";
+import { CheckCircle2, Circle, Clock, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { completeTask } from "@/server/actions/completions";
 import { useCelebrate } from "@/components/celebrate";
 import { enqueue } from "@/lib/offline/queue";
+import { db } from "@/lib/offline/db";
+import { useOfflineTasks } from "@/hooks/use-offline-tasks";
 import { StreakBadge } from "@/components/streak-badge";
 import { DailyProgressBar } from "@/components/daily-progress-bar";
 import { PointsCounter } from "@/components/points-counter";
@@ -59,10 +61,21 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
   const celebrate = useCelebrate();
   const { playCoin } = useWebAudio();
 
+  // Offline tasks from Dexie — gives us pendingCompletedIds across reloads
+  const todayDate = useMemo(() => new Date(todayStr + "T00:00:00"), [todayStr]);
+  const { pendingCompletedIds } = useOfflineTasks(todayDate, todayStr);
+
+  // Merge server-confirmed and locally-pending completions
+  const mergedInitial = useMemo(
+    () => new Set([...initialCompleted, ...pendingCompletedIds]),
+    [initialCompleted, pendingCompletedIds],
+  );
+
   const [optimisticCompleted, addOptimistic] = useOptimistic(
-    initialCompleted,
+    mergedInitial,
     (state: Set<string>, taskId: string) => new Set([...state, taskId]),
   );
+
   const [points, setPoints] = useState(profile.points_balance);
   const [streak, setStreak] = useState(profile.current_streak ?? 0);
   const [completedCount, setCompletedCount] = useState(initialCompleted.size);
@@ -102,6 +115,21 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
     if (!navigator.onLine) {
       await enqueue("completeTask", { taskId: task.id, completionDate: todayStr });
+      // Write to Dexie so the pending badge persists across reloads
+      await db.task_completions.put({
+        id: `offline-${task.id}-${todayStr}`,
+        task_id: task.id,
+        completed_by: profile.id,
+        completion_date: todayStr,
+        created_at: new Date().toISOString(),
+        status: "pending",
+        points_awarded: task.points,
+        boost_type: null,
+        note: null,
+        reviewed_at: null,
+        reviewed_by: null,
+        pending_sync: true,
+      });
       celebrate();
       toast("Sin conexión — se sincronizará cuando vuelvas online 📡");
       setCompletedCount((c) => c + 1);
@@ -149,7 +177,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
   const groups = ["morning", "afternoon", "night", "anytime"] as const;
   const grouped = Object.fromEntries(
     groups.map((g) => [g, tasks.filter((t) => timeGroup(t.due_time) === g)]),
-  ) as Record<typeof groups[number], Task[]>;
+  ) as Record<(typeof groups)[number], Task[]>;
 
   const pending = tasks.filter((t) => !optimisticCompleted.has(t.id));
   const completed = tasks.filter((t) => optimisticCompleted.has(t.id));
@@ -252,12 +280,14 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
                 </h2>
                 {completed.map((task) => {
                   const comp = completions.find((c) => c.task_id === task.id);
+                  const isPending = pendingCompletedIds.has(task.id);
                   return (
                     <TaskItem
                       key={task.id}
                       task={task}
                       done
-                      pointsAwarded={comp?.points_awarded ?? null}
+                      pendingSync={isPending}
+                      pointsAwarded={comp?.points_awarded ?? (isPending ? task.points : null)}
                     />
                   );
                 })}
@@ -278,12 +308,14 @@ function TaskItem({
   onComplete,
   pointsAwarded,
   showNearMiss = false,
+  pendingSync = false,
 }: {
   task: Task;
   done: boolean;
   onComplete?: () => void;
   pointsAwarded?: number | null;
   showNearMiss?: boolean;
+  pendingSync?: boolean;
 }) {
   return (
     <motion.div
@@ -312,6 +344,12 @@ function TaskItem({
           <span className={`text-xs font-bold ${done ? "text-success-emerald" : "text-primary"}`}>
             {done && pointsAwarded ? `+${pointsAwarded} pts` : `${task.points} pts`}
           </span>
+          {pendingSync && (
+            <span className="flex items-center gap-1 text-xs text-amber-500 font-medium">
+              <RefreshCw className="size-3" />
+              pendiente
+            </span>
+          )}
         </div>
       </div>
 
@@ -321,7 +359,11 @@ function TaskItem({
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 500, damping: 20 }}
         >
-          <CheckCircle2 className="size-8 text-success-emerald shrink-0" />
+          {pendingSync ? (
+            <RefreshCw className="size-8 text-amber-500 shrink-0 animate-spin" />
+          ) : (
+            <CheckCircle2 className="size-8 text-success-emerald shrink-0" />
+          )}
         </motion.div>
       ) : (
         <div className="relative shrink-0">

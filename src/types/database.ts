@@ -53,6 +53,7 @@ export type Database = {
           last_activity_date: string | null
           locale: string
           longest_streak: number
+          notification_prefs: Json
           points_balance: number
           role: string
           streak_shield_used_at: string | null
@@ -69,6 +70,7 @@ export type Database = {
           last_activity_date?: string | null
           locale?: string
           longest_streak?: number
+          notification_prefs?: Json
           points_balance?: number
           role: string
           streak_shield_used_at?: string | null
@@ -85,6 +87,7 @@ export type Database = {
           last_activity_date?: string | null
           locale?: string
           longest_streak?: number
+          notification_prefs?: Json
           points_balance?: number
           role?: string
           streak_shield_used_at?: string | null

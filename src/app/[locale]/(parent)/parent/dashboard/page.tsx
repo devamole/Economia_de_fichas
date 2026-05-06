@@ -2,6 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { PushSubscribeButton } from "@/components/push-subscribe";
+import { NotificationSettings } from "@/components/notification-settings";
+import type { NotificationPrefs } from "@/server/actions/push";
+
+const DEFAULT_PREFS: NotificationPrefs = {
+  task_completions: true,
+  reward_redemptions: true,
+};
 
 export default async function ParentDashboardPage() {
   const supabase = await createClient();
@@ -10,7 +17,7 @@ export default async function ParentDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("family_id, display_name")
+    .select("family_id, display_name, notification_prefs")
     .eq("id", user.id)
     .single();
   if (!profile) redirect("/login");
@@ -27,6 +34,11 @@ export default async function ParentDashboardPage() {
     supabase.from("profiles").select("display_name, emoji, points_balance")
       .eq("family_id", profile.family_id).eq("role", "child"),
   ]);
+
+  const notifPrefs: NotificationPrefs = {
+    ...DEFAULT_PREFS,
+    ...((profile.notification_prefs as NotificationPrefs) ?? {}),
+  };
 
   return (
     <main className="flex flex-col flex-1 gap-6 p-4 pt-6">
@@ -64,9 +76,13 @@ export default async function ParentDashboardPage() {
 
       {/* Notifications */}
       <section className="space-y-2">
-        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Ajustes</h2>
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Notificaciones</h2>
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
           <PushSubscribeButton />
+          <div className="border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground mb-3">Recibir avisos cuando…</p>
+            <NotificationSettings initialPrefs={notifPrefs} />
+          </div>
         </div>
       </section>
     </main>

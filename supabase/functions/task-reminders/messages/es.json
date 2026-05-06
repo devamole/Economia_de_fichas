@@ -1,0 +1,4 @@
+{
+  "reminder_title": "¡{taskTitle}!",
+  "reminder_body": "Te esperan +{points} puntos. ¡Tú puedes!"
+}

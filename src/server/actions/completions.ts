@@ -10,14 +10,18 @@ async function notifyParents(familyId: string, title: string, body: string) {
     const supabase = await createClient();
     const { data: parents } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, notification_prefs")
       .eq("family_id", familyId)
       .eq("role", "parent");
 
     if (!parents) return;
 
+    const eligible = parents.filter(
+      (p) => (p.notification_prefs as { task_completions?: boolean })?.task_completions !== false,
+    );
+
     await Promise.allSettled(
-      parents.map((p) =>
+      eligible.map((p) =>
         fetch(`${appUrl}/api/push/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

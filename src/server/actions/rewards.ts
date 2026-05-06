@@ -7,6 +7,43 @@ import { rewardSchema } from "@/lib/schemas/reward";
 type ActionResult = { error?: string };
 type RedeemResult = { redemption_id: string; cost_points: number; status: string } | { error: string };
 
+async function notifyParentsAboutRedemption(
+  familyId: string,
+  kidName: string,
+  rewardName: string,
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  try {
+    const supabase = await createClient();
+    const { data: parents } = await supabase
+      .from("profiles")
+      .select("id, notification_prefs")
+      .eq("family_id", familyId)
+      .eq("role", "parent");
+
+    if (!parents) return;
+
+    const eligible = parents.filter(
+      (p) => (p.notification_prefs as { reward_redemptions?: boolean })?.reward_redemptions !== false,
+    );
+
+    await Promise.allSettled(
+      eligible.map((p) =>
+        fetch(`${appUrl}/api/push/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: p.id,
+            title: "Recompensa solicitada 🎁",
+            body: `${kidName} quiere canjear "${rewardName}"`,
+            url: "/parent/approvals",
+          }),
+        }),
+      ),
+    );
+  } catch {}
+}
+
 function parseRewardForm(formData: FormData) {
   return rewardSchema.safeParse({
     name: formData.get("name"),
@@ -111,9 +148,21 @@ export async function redeemReward(rewardId: string): Promise<RedeemResult> {
     return { error: error.message };
   }
 
+  const result = data as RedeemResult;
+
+  if (!("error" in result)) {
+    const [{ data: profile }, { data: reward }] = await Promise.all([
+      supabase.from("profiles").select("family_id, display_name").eq("id", user.id).single(),
+      supabase.from("rewards").select("name").eq("id", rewardId).single(),
+    ]);
+    if (profile && reward) {
+      notifyParentsAboutRedemption(profile.family_id, profile.display_name, reward.name);
+    }
+  }
+
   revalidatePath("/child/rewards");
   revalidatePath("/child/today");
-  return data as RedeemResult;
+  return result;
 }
 
 export async function approveRedemption(redemptionId: string): Promise<ActionResult> {
