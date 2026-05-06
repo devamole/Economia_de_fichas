@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useOptimistic } from "react";
+import { useState, useOptimistic, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -8,10 +8,23 @@ import { toast } from "sonner";
 import { completeTask } from "@/server/actions/completions";
 import { useCelebrate } from "@/components/celebrate";
 import { enqueue } from "@/lib/offline/queue";
-import type { Task, TaskCompletion, Profile } from "@/types";
+import { StreakBadge } from "@/components/streak-badge";
+import { DailyProgressBar } from "@/components/daily-progress-bar";
+import { PointsCounter } from "@/components/points-counter";
+import { OyeeCelebration } from "@/components/oyee-celebration";
+import { showAchievementToast } from "@/components/achievement-toast";
+import { useWebAudio } from "@/hooks/use-web-audio";
+import type { Task, TaskCompletion, Profile, CompletionResultSuccess } from "@/types";
+
+// Fields added by migration 0007 (optional until db:types is re-run)
+type ProfileWithEngagement = Profile & {
+  current_streak?: number | null;
+  streak_shield_used_at?: string | null;
+  families: { timezone: string } | null;
+};
 
 interface Props {
-  profile: Profile & { families: { timezone: string } | null };
+  profile: ProfileWithEngagement;
   tasks: Task[];
   completedIds: Set<string>;
   completions: TaskCompletion[];
@@ -33,27 +46,65 @@ const GROUP_LABELS = {
   anytime: "En cualquier momento",
 } as const;
 
+function isShieldAvailable(shieldUsedAt: string | null | undefined, todayStr: string): boolean {
+  if (!shieldUsedAt) return true;
+  const days = Math.floor(
+    (new Date(todayStr).getTime() - new Date(shieldUsedAt).getTime()) / 86_400_000,
+  );
+  return days >= 30;
+}
+
 export function TodayClient({ profile, tasks, completedIds: initialCompleted, completions, todayStr }: Props) {
   const t = useTranslations("today");
   const celebrate = useCelebrate();
+  const { playCoin } = useWebAudio();
 
   const [optimisticCompleted, addOptimistic] = useOptimistic(
     initialCompleted,
     (state: Set<string>, taskId: string) => new Set([...state, taskId]),
   );
   const [points, setPoints] = useState(profile.points_balance);
+  const [streak, setStreak] = useState(profile.current_streak ?? 0);
+  const [completedCount, setCompletedCount] = useState(initialCompleted.size);
+  const [oyeeEvent, setOyeeEvent] = useState<{ points: number; basePoints: number } | null>(null);
+  const [nearMissTaskId, setNearMissTaskId] = useState<string | null>(null);
+  const [minorBoostKey, setMinorBoostKey] = useState(0);
+  const [showMinorFlash, setShowMinorFlash] = useState(false);
+  const nearMissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const shieldAvailable = isShieldAvailable(profile.streak_shield_used_at, todayStr);
+
+  function triggerBaseCompletion(showNearMiss: boolean, taskId: string) {
+    celebrate();
+    if (showNearMiss) {
+      if (nearMissTimer.current) clearTimeout(nearMissTimer.current);
+      setNearMissTaskId(taskId);
+      nearMissTimer.current = setTimeout(() => setNearMissTaskId(null), 1800);
+    }
+  }
+
+  function triggerMinorBoost(pointsAwarded: number) {
+    celebrate();
+    playCoin();
+    navigator.vibrate?.([30, 50, 30]);
+    setShowMinorFlash(true);
+    setMinorBoostKey((k) => k + 1);
+    setTimeout(() => setShowMinorFlash(false), 700);
+    toast.success(`⚡ +${pointsAwarded} pts — ¡Bonus de plata!`, {
+      style: { background: "#94a3b8", color: "#fff", fontWeight: 700 },
+      duration: 2500,
+    });
+  }
 
   async function handleComplete(task: Task) {
     if (optimisticCompleted.has(task.id)) return;
-
-    // Optimistically mark as complete
     addOptimistic(task.id);
 
-    // If offline, queue for later sync and celebrate optimistically
     if (!navigator.onLine) {
       await enqueue("completeTask", { taskId: task.id, completionDate: todayStr });
       celebrate();
       toast("Sin conexión — se sincronizará cuando vuelvas online 📡");
+      setCompletedCount((c) => c + 1);
       return;
     }
 
@@ -64,26 +115,40 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
       return;
     }
 
-    // Award points and celebrate
-    if (result.points_awarded) {
-      setPoints((p) => p + (result.points_awarded ?? 0));
-      celebrate();
-      toast.success(`+${result.points_awarded} puntos 🔥`, {
-        duration: 3000,
-        style: { background: "#7c3aed", color: "#fff", fontWeight: 700 },
-      });
+    const r = result as CompletionResultSuccess;
+    setPoints((p) => p + r.points_awarded);
+    setStreak(r.new_streak);
+    setCompletedCount((c) => c + 1);
+
+    const showNearMiss = r.boost_type === "none" && Math.random() < 0.2;
+
+    if (r.boost_type === "epic") {
+      setOyeeEvent({ points: r.points_awarded, basePoints: r.base_points });
+    } else if (r.boost_type === "minor") {
+      triggerMinorBoost(r.points_awarded);
     } else {
-      toast("Tarea enviada para aprobación ✋");
+      triggerBaseCompletion(showNearMiss, task.id);
+      const isPending = r.status === "pending";
+      toast.success(
+        isPending ? `+${r.points_awarded} puntos ⏳` : `+${r.points_awarded} puntos 🔥`,
+        {
+          description: isPending ? "Pendiente de aprobación del adulto" : undefined,
+          duration: 3000,
+          style: { background: "#7c3aed", color: "#fff", fontWeight: 700 },
+        },
+      );
+    }
+
+    r.new_achievements?.forEach((key) => showAchievementToast(key));
+
+    if (r.shield_activated) {
+      toast("🛡️ ¡Escudo activado automáticamente! Tu racha continúa.", { duration: 3500 });
     }
   }
 
-  // Group tasks
   const groups = ["morning", "afternoon", "night", "anytime"] as const;
   const grouped = Object.fromEntries(
-    groups.map((g) => [
-      g,
-      tasks.filter((t) => timeGroup(t.due_time) === g),
-    ]),
+    groups.map((g) => [g, tasks.filter((t) => timeGroup(t.due_time) === g)]),
   ) as Record<typeof groups[number], Task[]>;
 
   const pending = tasks.filter((t) => !optimisticCompleted.has(t.id));
@@ -91,19 +156,48 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
   return (
     <main className="flex flex-col flex-1 gap-0 pb-4">
+      {/* Minor boost silver flash */}
+      <AnimatePresence>
+        {showMinorFlash && (
+          <motion.div
+            key={minorBoostKey}
+            className="fixed inset-0 z-40 pointer-events-none"
+            style={{ background: "radial-gradient(ellipse at center, rgba(148,163,184,0.55) 0%, transparent 70%)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Epic OYEE overlay */}
+      {oyeeEvent && (
+        <OyeeCelebration
+          points={oyeeEvent.points}
+          basePoints={oyeeEvent.basePoints}
+          onComplete={() => setOyeeEvent(null)}
+        />
+      )}
+
       {/* Hero header */}
-      <div className="px-5 pt-8 pb-6 bg-gradient-to-b from-[#7c3aed]/10 to-transparent">
-        <p className="text-muted-foreground text-sm">{t("greeting", { name: profile.display_name })}</p>
-        <motion.div
-          key={points}
-          initial={{ scale: 0.9, opacity: 0.7 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className="font-display text-5xl font-bold tabular mt-1"
-        >
-          {points}
-          <span className="text-xl ml-2 text-muted-foreground font-normal">pts</span>
-        </motion.div>
+      <div className="px-5 pt-8 pb-3 bg-gradient-to-b from-[#7c3aed]/10 to-transparent">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-muted-foreground text-sm">{t("greeting", { name: profile.display_name })}</p>
+            <div className="mt-1">
+              <PointsCounter points={points} />
+            </div>
+          </div>
+          <div className="pt-1">
+            <StreakBadge
+              streak={streak}
+              shieldAvailable={shieldAvailable}
+              todayStr={todayStr}
+            />
+          </div>
+        </div>
+
         {tasks.length > 0 && (
           <p className="text-sm text-muted-foreground mt-2">
             {pending.length === 0
@@ -112,6 +206,9 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
           </p>
         )}
       </div>
+
+      {/* Daily progress bar */}
+      <DailyProgressBar completed={completedCount} total={tasks.length} />
 
       <div className="flex-1 px-4 space-y-6">
         {tasks.length === 0 ? (
@@ -125,7 +222,6 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
           </motion.div>
         ) : (
           <>
-            {/* Pending tasks by time group */}
             {groups.map((group) => {
               const groupTasks = grouped[group].filter((t) => !optimisticCompleted.has(t.id));
               if (groupTasks.length === 0) return null;
@@ -140,6 +236,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
                         key={task.id}
                         task={task}
                         done={false}
+                        showNearMiss={nearMissTaskId === task.id}
                         onComplete={() => handleComplete(task)}
                       />
                     ))}
@@ -148,7 +245,6 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
               );
             })}
 
-            {/* Completed tasks */}
             {completed.length > 0 && (
               <section className="space-y-2">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
@@ -181,11 +277,13 @@ function TaskItem({
   done,
   onComplete,
   pointsAwarded,
+  showNearMiss = false,
 }: {
   task: Task;
   done: boolean;
   onComplete?: () => void;
   pointsAwarded?: number | null;
+  showNearMiss?: boolean;
 }) {
   return (
     <motion.div
@@ -212,9 +310,7 @@ function TaskItem({
             </span>
           )}
           <span className={`text-xs font-bold ${done ? "text-success-emerald" : "text-primary"}`}>
-            {done && pointsAwarded
-              ? `+${pointsAwarded} pts`
-              : `${task.points} pts`}
+            {done && pointsAwarded ? `+${pointsAwarded} pts` : `${task.points} pts`}
           </span>
         </div>
       </div>
@@ -228,13 +324,42 @@ function TaskItem({
           <CheckCircle2 className="size-8 text-success-emerald shrink-0" />
         </motion.div>
       ) : (
-        <button
-          onClick={onComplete}
-          className="size-9 flex items-center justify-center rounded-full border-2 border-border hover:border-primary hover:bg-primary/10 active:scale-90 transition-all shrink-0"
-          aria-label={`Completar: ${task.title}`}
-        >
-          <Circle className="size-5 text-muted-foreground" />
-        </button>
+        <div className="relative shrink-0">
+          <motion.button
+            onClick={onComplete}
+            animate={
+              showNearMiss
+                ? {
+                    boxShadow: [
+                      "0 0 0px 0px rgba(251,191,36,0)",
+                      "0 0 12px 4px rgba(251,191,36,0.8)",
+                      "0 0 0px 0px rgba(251,191,36,0)",
+                    ],
+                  }
+                : { boxShadow: "0 0 0px 0px rgba(251,191,36,0)" }
+            }
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="size-9 flex items-center justify-center rounded-full border-2 border-border hover:border-primary hover:bg-primary/10 active:scale-90 transition-all"
+            aria-label={`Completar: ${task.title}`}
+          >
+            <Circle className="size-5 text-muted-foreground" />
+          </motion.button>
+
+          {/* Near-miss ephemeral text */}
+          <AnimatePresence>
+            {showNearMiss && (
+              <motion.span
+                className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-amber-500 pointer-events-none"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.25 }}
+              >
+                ¡Casi! Sigue así
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
       )}
     </motion.div>
   );

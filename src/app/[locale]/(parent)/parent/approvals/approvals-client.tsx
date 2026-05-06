@@ -52,7 +52,7 @@ export function ApprovalsClient({
     removeCompletion(id);
     const result = await approveCompletion(id);
     if ("error" in result && result.error) toast.error(result.error);
-    else toast.success("Aprobado ✅ — puntos sumados");
+    else toast.success("Aprobado ✅");
   }
 
   async function handleReject(id: string) {
@@ -67,7 +67,7 @@ export function ApprovalsClient({
     removeCompletion(id);
     const result = await rejectCompletion(id, rejectNote || undefined);
     if ("error" in result && result.error) toast.error(result.error);
-    else toast("Rechazado");
+    else toast("Rechazado — puntos descontados");
     setRejectNote("");
   }
 

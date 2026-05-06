@@ -45,35 +45,50 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          current_streak: number
           display_name: string
           emoji: string | null
           family_id: string
           id: string
+          last_activity_date: string | null
           locale: string
+          longest_streak: number
           points_balance: number
           role: string
+          streak_shield_used_at: string | null
+          total_points_earned: number
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          current_streak?: number
           display_name: string
           emoji?: string | null
           family_id: string
           id: string
+          last_activity_date?: string | null
           locale?: string
+          longest_streak?: number
           points_balance?: number
           role: string
+          streak_shield_used_at?: string | null
+          total_points_earned?: number
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          current_streak?: number
           display_name?: string
           emoji?: string | null
           family_id?: string
           id?: string
+          last_activity_date?: string | null
           locale?: string
+          longest_streak?: number
           points_balance?: number
           role?: string
+          streak_shield_used_at?: string | null
+          total_points_earned?: number
         }
         Relationships: [
           {
@@ -263,6 +278,7 @@ export type Database = {
       }
       task_completions: {
         Row: {
+          boost_type: string | null
           completed_by: string
           completion_date: string
           created_at: string
@@ -275,6 +291,7 @@ export type Database = {
           task_id: string
         }
         Insert: {
+          boost_type?: string | null
           completed_by: string
           completion_date: string
           created_at?: string
@@ -287,6 +304,7 @@ export type Database = {
           task_id: string
         }
         Update: {
+          boost_type?: string | null
           completed_by?: string
           completion_date?: string
           created_at?: string
@@ -404,18 +422,47 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          badge_key: string
+          id: string
+          profile_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          badge_key: string
+          id?: string
+          profile_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          badge_key?: string
+          id?: string
+          profile_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      activate_streak_shield: {
+        Args: { p_date: string; p_profile_id: string }
+        Returns: Json
+      }
       approve_completion: {
         Args: { p_completion_id: string; p_reviewer_id: string }
         Returns: undefined
-      }
-      lookup_family_by_code: {
-        Args: { p_code: string }
-        Returns: Json
       }
       approve_redemption: {
         Args: { p_redemption_id: string; p_reviewer_id: string }
@@ -440,6 +487,7 @@ export type Database = {
       }
       current_user_family_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      lookup_family_by_code: { Args: { p_code: string }; Returns: Json }
       redeem_reward: {
         Args: { p_redeemed_by: string; p_reward_id: string }
         Returns: Json

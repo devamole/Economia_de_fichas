@@ -2,10 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-type CompletionResult =
-  | { completion_id: string; points_awarded: number | null; status: string }
-  | { error: string };
+import type { CompletionResult } from "@/types";
 
 async function notifyParents(familyId: string, title: string, body: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -56,7 +53,6 @@ export async function completeTask(
 
   const result = data as CompletionResult;
 
-  // Notify parents if approval needed
   if (!("error" in result) && result.status === "pending") {
     const { data: profile } = await supabase
       .from("profiles")
@@ -80,6 +76,7 @@ export async function completeTask(
   }
 
   revalidatePath("/child/today");
+  revalidatePath("/child/profile");
   return result;
 }
 
