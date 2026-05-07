@@ -3,46 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rewardSchema } from "@/lib/schemas/reward";
+import { notifyFamilyParents } from "@/lib/push-notify";
 
 type ActionResult = { error?: string };
 type RedeemResult = { redemption_id: string; cost_points: number; status: string } | { error: string };
-
-async function notifyParentsAboutRedemption(
-  familyId: string,
-  kidName: string,
-  rewardName: string,
-) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  try {
-    const supabase = await createClient();
-    const { data: parents } = await supabase
-      .from("profiles")
-      .select("id, notification_prefs")
-      .eq("family_id", familyId)
-      .eq("role", "parent");
-
-    if (!parents) return;
-
-    const eligible = parents.filter(
-      (p) => (p.notification_prefs as { reward_redemptions?: boolean })?.reward_redemptions !== false,
-    );
-
-    await Promise.allSettled(
-      eligible.map((p) =>
-        fetch(`${appUrl}/api/push/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: p.id,
-            title: "Recompensa solicitada 🎁",
-            body: `${kidName} quiere canjear "${rewardName}"`,
-            url: "/parent/approvals",
-          }),
-        }),
-      ),
-    );
-  } catch {}
-}
 
 function parseRewardForm(formData: FormData) {
   return rewardSchema.safeParse({
@@ -156,7 +120,11 @@ export async function redeemReward(rewardId: string): Promise<RedeemResult> {
       supabase.from("rewards").select("name").eq("id", rewardId).single(),
     ]);
     if (profile && reward) {
-      notifyParentsAboutRedemption(profile.family_id, profile.display_name, reward.name);
+      notifyFamilyParents(profile.family_id, "reward_redemptions", {
+        title: "Recompensa solicitada 🎁",
+        body: `${profile.display_name} quiere canjear "${reward.name}"`,
+        url: "/parent/approvals",
+      });
     }
   }
 

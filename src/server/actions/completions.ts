@@ -2,35 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notifyFamilyParents } from "@/lib/push-notify";
 import type { CompletionResult } from "@/types";
-
-async function notifyParents(familyId: string, title: string, body: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  try {
-    const supabase = await createClient();
-    const { data: parents } = await supabase
-      .from("profiles")
-      .select("id, notification_prefs")
-      .eq("family_id", familyId)
-      .eq("role", "parent");
-
-    if (!parents) return;
-
-    const eligible = parents.filter(
-      (p) => (p.notification_prefs as { task_completions?: boolean })?.task_completions !== false,
-    );
-
-    await Promise.allSettled(
-      eligible.map((p) =>
-        fetch(`${appUrl}/api/push/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: p.id, title, body, url: "/parent/approvals" }),
-        }),
-      ),
-    );
-  } catch {}
-}
 
 export async function completeTask(
   taskId: string,
@@ -70,10 +43,14 @@ export async function completeTask(
         .eq("id", taskId)
         .single();
       if (task) {
-        notifyParents(
+        notifyFamilyParents(
           profile.family_id,
-          "Tarea completada 📝",
-          `${profile.display_name} completó "${task.title}"`,
+          "task_completions",
+          {
+            title: "Tarea completada 📝",
+            body: `${profile.display_name} completó "${task.title}"`,
+            url: "/parent/approvals",
+          },
         );
       }
     }
