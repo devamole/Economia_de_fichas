@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { toZonedTime } from "date-fns-tz";
 import { TasksClient } from "./tasks-client";
 
 export default async function TasksPage() {
@@ -14,10 +15,13 @@ export default async function TasksPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("family_id")
+    .select("family_id, families(timezone)")
     .eq("id", user.id)
     .single();
   if (!profile) redirect("/login");
+
+  const timezone = (profile.families as { timezone: string } | null)?.timezone ?? "America/Bogota";
+  const todayStr = toZonedTime(new Date(), timezone).toISOString().slice(0, 10);
 
   // Fetch all tasks for the family
   const { data: tasks } = await supabase
@@ -40,6 +44,7 @@ export default async function TasksPage() {
       title={t("title")}
       emptyActive={t("emptyActive")}
       emptyInactive={t("emptyInactive")}
+      todayStr={todayStr}
     />
   );
 }

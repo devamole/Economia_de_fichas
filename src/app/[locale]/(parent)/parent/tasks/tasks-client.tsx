@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useOptimistic } from "react";
+import { useMemo, useOptimistic, useState } from "react";
+import { format, isSameDay, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pencil, PowerOff, Power, Trash2, Clock } from "lucide-react";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskForm } from "@/components/task-form";
+import { getNextTaskOccurrence } from "@/lib/recurrence";
 import { deactivateTask, activateTask, deleteTask } from "@/server/actions/tasks";
 import type { Task, Profile } from "@/types";
 
@@ -15,15 +18,35 @@ interface Props {
   title: string;
   emptyActive: string;
   emptyInactive: string;
+  todayStr: string;
 }
 
-export function TasksClient({ initialTasks, kids, title, emptyActive, emptyInactive }: Props) {
+type TaskSection = {
+  key: string;
+  label: string;
+  tasks: Task[];
+};
+
+export function TasksClient({
+  initialTasks,
+  kids,
+  title,
+  emptyActive,
+  emptyInactive,
+  todayStr,
+}: Props) {
   const [tasks, setTasksOptimistic] = useOptimistic(initialTasks);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const locale = useLocale();
 
   const activeTasks = tasks.filter((t) => t.active);
   const inactiveTasks = tasks.filter((t) => !t.active);
+  const today = useMemo(() => parseISO(todayStr), [todayStr]);
+  const { upcomingSections, unscheduledTasks } = useMemo(
+    () => groupTasksByNextOccurrence(activeTasks, today, locale),
+    [activeTasks, today, locale],
+  );
 
   function openNew() {
     setEditingTask(null);
@@ -84,19 +107,53 @@ export function TasksClient({ initialTasks, kids, title, emptyActive, emptyInact
           {activeTasks.length === 0 ? (
             <EmptyState message={emptyActive} />
           ) : (
-            <AnimatePresence initial={false}>
-              {activeTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  kids={kids}
-                  recurrenceLabel={RECURRENCE_LABEL[task.recurrence_type] ?? task.recurrence_type}
-                  onEdit={() => openEdit(task)}
-                  onDeactivate={() => handleDeactivate(task)}
-                  onDelete={() => handleDelete(task)}
-                />
+            <div className="space-y-5">
+              {upcomingSections.map((section) => (
+                <section key={section.key} className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h2 className="text-sm font-semibold text-foreground/85">{section.label}</h2>
+                    <span className="text-xs text-muted-foreground">{section.tasks.length} tareas</span>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {section.tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        kids={kids}
+                        recurrenceLabel={RECURRENCE_LABEL[task.recurrence_type] ?? task.recurrence_type}
+                        onEdit={() => openEdit(task)}
+                        onDeactivate={() => handleDeactivate(task)}
+                        onDelete={() => handleDelete(task)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </section>
               ))}
-            </AnimatePresence>
+
+              {unscheduledTasks.length > 0 && (
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h2 className="text-sm font-semibold text-foreground/85">
+                      {locale === "es" ? "Sin próxima fecha" : "No upcoming date"}
+                    </h2>
+                    <span className="text-xs text-muted-foreground">{unscheduledTasks.length} tareas</span>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {unscheduledTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        kids={kids}
+                        recurrenceLabel={RECURRENCE_LABEL[task.recurrence_type] ?? task.recurrence_type}
+                        onEdit={() => openEdit(task)}
+                        onDeactivate={() => handleDeactivate(task)}
+                        onDelete={() => handleDelete(task)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </section>
+              )}
+            </div>
           )}
         </TabsContent>
 
@@ -130,6 +187,74 @@ export function TasksClient({ initialTasks, kids, title, emptyActive, emptyInact
       />
     </main>
   );
+}
+
+function groupTasksByNextOccurrence(tasks: Task[], today: Date, locale: string): {
+  upcomingSections: TaskSection[];
+  unscheduledTasks: Task[];
+} {
+  const sections = new Map<string, TaskSection>();
+  const unscheduledTasks: Task[] = [];
+
+  for (const task of tasks) {
+    const nextOccurrence = getNextTaskOccurrence(task, today);
+
+    if (!nextOccurrence) {
+      unscheduledTasks.push(task);
+      continue;
+    }
+
+    const key = format(nextOccurrence, "yyyy-MM-dd");
+    const existing = sections.get(key);
+
+    if (existing) {
+      existing.tasks.push(task);
+      continue;
+    }
+
+    sections.set(key, {
+      key,
+      label: formatSectionLabel(nextOccurrence, today, locale),
+      tasks: [task],
+    });
+  }
+
+  const sortTasks = (left: Task, right: Task) => {
+    if (left.due_time && right.due_time) return left.due_time.localeCompare(right.due_time);
+    if (left.due_time) return -1;
+    if (right.due_time) return 1;
+    return left.title.localeCompare(right.title, locale);
+  };
+
+  const upcomingSections = Array.from(sections.values())
+    .sort((left, right) => left.key.localeCompare(right.key))
+    .map((section) => ({
+      ...section,
+      tasks: [...section.tasks].sort(sortTasks),
+    }));
+
+  return {
+    upcomingSections,
+    unscheduledTasks: [...unscheduledTasks].sort(sortTasks),
+  };
+}
+
+function formatSectionLabel(date: Date, today: Date, locale: string): string {
+  const dateLabel = format(date, "dd/MM");
+
+  if (isSameDay(date, today)) {
+    return `${locale === "es" ? "Hoy" : "Today"} - ${dateLabel}`;
+  }
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  if (isSameDay(date, tomorrow)) {
+    return `${locale === "es" ? "Mañana" : "Tomorrow"} - ${dateLabel}`;
+  }
+
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date);
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} - ${dateLabel}`;
 }
 
 // ── Task card ─────────────────────────────────────────────────────────────────

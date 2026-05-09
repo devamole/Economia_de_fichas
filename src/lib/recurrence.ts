@@ -1,4 +1,4 @@
-import { parseISO, isWithinInterval, getDay, isSameDay, startOfDay } from "date-fns";
+import { addDays, getDay, isSameDay, parseISO, startOfDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import type { Task } from "@/types";
 
@@ -53,6 +53,52 @@ export function taskOccursOn(task: Task, localDate: Date): boolean {
 /** Filter tasks that occur on a given local date. */
 export function getTasksForDate(tasks: Task[], localDate: Date): Task[] {
   return tasks.filter((t) => taskOccursOn(t, localDate));
+}
+
+/**
+ * Returns the next local date when a task occurs on or after `fromDate`.
+ * `fromDate` must already be in the family's timezone.
+ */
+export function getNextTaskOccurrence(task: Task, fromDate: Date): Date | null {
+  if (!task.active) return null;
+
+  const start = startOfDay(parseISO(task.start_date));
+  const localFrom = startOfDay(fromDate);
+
+  if (task.end_date) {
+    const end = startOfDay(parseISO(task.end_date));
+    if (localFrom > end) return null;
+  }
+
+  switch (task.recurrence_type) {
+    case "once":
+      return start >= localFrom ? start : null;
+
+    case "daily":
+      return start > localFrom ? start : localFrom;
+
+    case "weekly":
+    case "custom": {
+      const days = (task.recurrence_days as number[] | null) ?? [];
+      if (days.length === 0) return null;
+
+      const candidate = start > localFrom ? start : localFrom;
+      const maxCandidate = task.end_date
+        ? startOfDay(parseISO(task.end_date))
+        : addDays(candidate, 7);
+
+      for (let current = candidate; current <= maxCandidate; current = addDays(current, 1)) {
+        if (days.includes(getDay(current)) && taskOccursOn(task, current)) {
+          return current;
+        }
+      }
+
+      return null;
+    }
+
+    default:
+      return null;
+  }
 }
 
 /**

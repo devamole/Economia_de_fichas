@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import { taskOccursOn, getTasksForDate, getTasksForDateRange } from "./recurrence";
+import {
+  taskOccursOn,
+  getTasksForDate,
+  getTasksForDateRange,
+  getNextTaskOccurrence,
+} from "./recurrence";
 import type { Task } from "@/types";
 
 const TZ = "America/Bogota"; // UTC-5
@@ -124,5 +129,42 @@ describe("getTasksForDateRange", () => {
     const task = makeTask({ active: false, recurrence_type: "daily", start_date: "2025-01-01" });
     const map = getTasksForDateRange([task], localDate("2025-01-01"), localDate("2025-01-02"));
     expect(map.get("2025-01-01")).toHaveLength(0);
+  });
+});
+
+describe("getNextTaskOccurrence", () => {
+  it("returns today for daily tasks already started", () => {
+    const task = makeTask({ recurrence_type: "daily", start_date: "2025-01-01" });
+    expect(getNextTaskOccurrence(task, localDate("2025-01-10"))?.toISOString().slice(0, 10)).toBe(
+      "2025-01-10",
+    );
+  });
+
+  it("returns the next matching weekday for weekly tasks", () => {
+    const task = makeTask({
+      recurrence_type: "weekly",
+      recurrence_days: [1],
+      start_date: "2025-01-01",
+    });
+
+    expect(getNextTaskOccurrence(task, localDate("2025-01-07"))?.toISOString().slice(0, 10)).toBe(
+      "2025-01-13",
+    );
+  });
+
+  it("returns null when a once task is already in the past", () => {
+    const task = makeTask({ recurrence_type: "once", start_date: "2025-01-05" });
+    expect(getNextTaskOccurrence(task, localDate("2025-01-10"))).toBeNull();
+  });
+
+  it("returns null when no matching custom day exists before end_date", () => {
+    const task = makeTask({
+      recurrence_type: "custom",
+      recurrence_days: [5],
+      start_date: "2025-01-01",
+      end_date: "2025-01-02",
+    });
+
+    expect(getNextTaskOccurrence(task, localDate("2025-01-01"))).toBeNull();
   });
 });
