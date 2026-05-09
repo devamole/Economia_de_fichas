@@ -5,6 +5,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Clock, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { approveCompletion, rejectCompletion } from "@/server/actions/completions";
 import { approveRedemption, rejectRedemption } from "@/server/actions/rewards";
 
@@ -63,11 +72,15 @@ export function ApprovalsClient({
   async function confirmReject() {
     if (!rejectingId) return;
     const id = rejectingId;
-    setRejectingId(null);
-    removeCompletion(id);
     const result = await rejectCompletion(id, rejectNote || undefined);
-    if ("error" in result && result.error) toast.error(result.error);
-    else toast("Rechazado — puntos descontados");
+    if ("error" in result && result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    removeCompletion(id);
+    setRejectingId(null);
+    toast("Rechazado — puntos descontados");
     setRejectNote("");
   }
 
@@ -262,6 +275,53 @@ export function ApprovalsClient({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Dialog
+        open={rejectingId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectingId(null);
+            setRejectNote("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar tarea</DialogTitle>
+            <DialogDescription>
+              Esta acción marcará la tarea como rechazada y revertirá los puntos otorgados.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label htmlFor="reject-note" className="text-sm font-medium">
+              Nota opcional
+            </label>
+            <Input
+              id="reject-note"
+              value={rejectNote}
+              onChange={(event) => setRejectNote(event.target.value)}
+              placeholder="Explica brevemente por qué la rechazas"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setRejectingId(null);
+                setRejectNote("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmReject}>
+              Confirmar rechazo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
