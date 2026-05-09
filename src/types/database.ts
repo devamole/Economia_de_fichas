@@ -20,6 +20,9 @@ export type Database = {
           created_by: string | null
           family_code: string
           id: string
+          money_currency: string | null
+          money_exchange_enabled: boolean
+          money_exchange_rate: number | null
           name: string
           timezone: string
         }
@@ -28,6 +31,9 @@ export type Database = {
           created_by?: string | null
           family_code: string
           id?: string
+          money_currency?: string | null
+          money_exchange_enabled?: boolean
+          money_exchange_rate?: number | null
           name: string
           timezone?: string
         }
@@ -36,6 +42,9 @@ export type Database = {
           created_by?: string | null
           family_code?: string
           id?: string
+          money_currency?: string | null
+          money_exchange_enabled?: boolean
+          money_exchange_rate?: number | null
           name?: string
           timezone?: string
         }
@@ -187,6 +196,7 @@ export type Database = {
         Row: {
           cost_points_at_redemption: number
           id: string
+          money_value_at_redemption: number | null
           redeemed_by: string
           requested_at: string
           reviewed_at: string | null
@@ -197,6 +207,7 @@ export type Database = {
         Insert: {
           cost_points_at_redemption: number
           id?: string
+          money_value_at_redemption?: number | null
           redeemed_by: string
           requested_at?: string
           reviewed_at?: string | null
@@ -207,6 +218,7 @@ export type Database = {
         Update: {
           cost_points_at_redemption?: number
           id?: string
+          money_value_at_redemption?: number | null
           redeemed_by?: string
           requested_at?: string
           reviewed_at?: string | null
@@ -248,6 +260,7 @@ export type Database = {
           family_id: string
           id: string
           name: string
+          type: string
         }
         Insert: {
           active?: boolean
@@ -258,6 +271,7 @@ export type Database = {
           family_id: string
           id?: string
           name: string
+          type?: string
         }
         Update: {
           active?: boolean
@@ -268,6 +282,7 @@ export type Database = {
           family_id?: string
           id?: string
           name?: string
+          type?: string
         }
         Relationships: [
           {
@@ -491,6 +506,10 @@ export type Database = {
       current_user_family_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
       lookup_family_by_code: { Args: { p_code: string }; Returns: Json }
+      redeem_money_exchange: {
+        Args: { p_redeemed_by: string; p_points_to_redeem: number }
+        Returns: Json
+      }
       redeem_reward: {
         Args: { p_redeemed_by: string; p_reward_id: string }
         Returns: Json

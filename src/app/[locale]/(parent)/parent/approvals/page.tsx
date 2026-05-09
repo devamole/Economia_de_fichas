@@ -22,7 +22,7 @@ export default async function ApprovalsPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("reward_redemptions")
-      .select("*, rewards(name, emoji, cost_points), profiles!redeemed_by(display_name, emoji)")
+      .select("*, rewards(name, emoji, cost_points, type), profiles!redeemed_by(display_name, emoji)")
       .eq("status", "pending")
       .order("requested_at", { ascending: true }),
   ]);

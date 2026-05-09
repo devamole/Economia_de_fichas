@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { redeemReward } from "@/server/actions/rewards";
+import { Input } from "@/components/ui/input";
+import { redeemReward, redeemMoneyExchange } from "@/server/actions/rewards";
 import { useCelebrate } from "@/components/celebrate";
 import type { Reward } from "@/types";
 
@@ -14,13 +15,21 @@ type RedemptionRow = {
   requested_at: string;
   status: string;
   cost_points_at_redemption: number;
-  rewards: { name: string; emoji: string | null } | null;
+  money_value_at_redemption: number | null;
+  rewards: { name: string; emoji: string | null; type: string } | null;
 };
+
+interface MoneyExchangeConfig {
+  rate: number;
+  currency: string;
+  enabled: true;
+}
 
 interface ChildRewardsClientProps {
   rewards: Reward[];
   redemptions: RedemptionRow[];
   pointsBalance: number;
+  moneyExchangeConfig: MoneyExchangeConfig | null;
 }
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
@@ -35,11 +44,16 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "Rechazada",
 };
 
-export function ChildRewardsClient({ rewards, redemptions, pointsBalance }: ChildRewardsClientProps) {
+export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyExchangeConfig }: ChildRewardsClientProps) {
   const [balance, setBalance] = useState(pointsBalance);
   const [confirming, setConfirming] = useState<Reward | null>(null);
   const [loading, setLoading] = useState(false);
   const celebrate = useCelebrate();
+
+  // Money exchange state
+  const [confirmingMoney, setConfirmingMoney] = useState(false);
+  const [moneyPoints, setMoneyPoints] = useState("");
+  const [loadingMoney, setLoadingMoney] = useState(false);
 
   async function handleRedeem(reward: Reward) {
     setLoading(true);
@@ -57,10 +71,56 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance }: Chil
     }
   }
 
+  async function handleRedeemMoney() {
+    const pts = parseInt(moneyPoints, 10);
+    if (isNaN(pts) || pts < 1) return;
+    setLoadingMoney(true);
+    const result = await redeemMoneyExchange(pts);
+    setLoadingMoney(false);
+    setConfirmingMoney(false);
+    setMoneyPoints("");
+    if ("error" in result) {
+      toast.error(result.error);
+    } else {
+      setBalance((b) => b - pts);
+      celebrate();
+      const moneyStr = `${result.money_value.toFixed(2)} ${result.currency}`;
+      toast.success(`¡Canje solicitado! 💰 ${pts} pts → ${moneyStr}`);
+    }
+  }
+
   const canAfford = (cost: number) => balance >= cost;
+
+  const moneyPtsNum = parseInt(moneyPoints, 10);
+  const moneyPreview =
+    moneyExchangeConfig && !isNaN(moneyPtsNum) && moneyPtsNum > 0
+      ? (moneyPtsNum * moneyExchangeConfig.rate).toFixed(2)
+      : null;
 
   return (
     <div className="space-y-6">
+      {/* Money exchange card */}
+      {moneyExchangeConfig && (
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => { setConfirmingMoney(true); setMoneyPoints(""); }}
+          className="w-full rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 text-left hover:border-primary/60 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">💰</span>
+            <div className="flex-1">
+              <p className="font-semibold">Canjear por Dinero</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                1 pt = {moneyExchangeConfig.rate.toFixed(2)} {moneyExchangeConfig.currency}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-primary bg-primary/10 rounded-full px-2 py-1">
+              Tus pts
+            </span>
+          </div>
+        </motion.button>
+      )}
+
       {/* Reward catalog */}
       <section className="space-y-3">
         {rewards.length === 0 ? (
@@ -106,24 +166,116 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance }: Chil
         <section className="space-y-2">
           <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Historial</h2>
           <div className="space-y-2">
-            {redemptions.map((r) => (
-              <div key={r.id} className="flex items-center gap-3 rounded-xl bg-muted/50 p-3">
-                <span className="text-2xl">{r.rewards?.emoji ?? "🎁"}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{r.rewards?.name}</p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    {STATUS_ICON[r.status]}
-                    <span className="text-xs text-muted-foreground">{STATUS_LABEL[r.status] ?? r.status}</span>
+            {redemptions.map((r) => {
+              const isMoney = r.rewards?.type === "money_exchange";
+              return (
+                <div key={r.id} className="flex items-center gap-3 rounded-xl bg-muted/50 p-3">
+                  <span className="text-2xl">{isMoney ? "💰" : (r.rewards?.emoji ?? "🎁")}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {isMoney ? "Canje por Dinero" : r.rewards?.name}
+                    </p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {STATUS_ICON[r.status]}
+                      <span className="text-xs text-muted-foreground">{STATUS_LABEL[r.status] ?? r.status}</span>
+                      {isMoney && r.money_value_at_redemption != null && (
+                        <span className="text-xs font-semibold text-emerald-600 ml-1">
+                          → {r.money_value_at_redemption.toFixed(2)} {moneyExchangeConfig?.currency ?? ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <span className="text-sm font-bold text-primary shrink-0">
+                    -{r.cost_points_at_redemption} pts
+                  </span>
                 </div>
-                <span className="text-sm font-bold text-primary shrink-0">
-                  -{r.cost_points_at_redemption} pts
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
+
+      {/* Money exchange modal */}
+      <AnimatePresence>
+        {confirmingMoney && moneyExchangeConfig && (
+          <>
+            <motion.div
+              key="money-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50"
+              onClick={() => setConfirmingMoney(false)}
+            />
+            <motion.div
+              key="money-dialog"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 rounded-3xl bg-background border border-border p-6 space-y-4 text-center"
+            >
+              <span className="text-6xl block">💰</span>
+              <h2 className="font-display font-bold text-xl">Canjear por Dinero</h2>
+              <p className="text-sm text-muted-foreground">
+                1 pt = {moneyExchangeConfig.rate.toFixed(2)} {moneyExchangeConfig.currency}
+              </p>
+
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium">¿Cuántos puntos quieres canjear?</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={balance}
+                  value={moneyPoints}
+                  onChange={(e) => setMoneyPoints(e.target.value)}
+                  placeholder="Ej: 50"
+                  className="text-center text-lg h-12"
+                  autoFocus
+                />
+              </div>
+
+              {moneyPreview && (
+                <div className="rounded-xl bg-primary/10 p-3 space-y-1">
+                  <p className="text-2xl font-bold text-primary">
+                    {moneyPreview} {moneyExchangeConfig.currency}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Te quedarán <strong>{balance - moneyPtsNum} pts</strong>
+                  </p>
+                </div>
+              )}
+
+              {moneyPtsNum > balance && (
+                <p className="text-sm text-destructive">No tienes suficientes puntos.</p>
+              )}
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl"
+                  onClick={() => setConfirmingMoney(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 rounded-xl font-semibold"
+                  disabled={
+                    loadingMoney ||
+                    !moneyPreview ||
+                    isNaN(moneyPtsNum) ||
+                    moneyPtsNum < 1 ||
+                    moneyPtsNum > balance
+                  }
+                  onClick={handleRedeemMoney}
+                >
+                  {loadingMoney ? "Canjeando…" : "Canjear 💰"}
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Confirm dialog */}
       <AnimatePresence>

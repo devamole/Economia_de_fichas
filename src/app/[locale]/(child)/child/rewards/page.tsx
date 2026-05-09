@@ -14,19 +14,39 @@ export default async function ChildRewardsPage() {
     .single();
   if (!profile) redirect("/login");
 
-  const { data: rewards } = await supabase
-    .from("rewards")
-    .select("*")
-    .eq("family_id", profile.family_id)
-    .eq("active", true)
-    .order("cost_points", { ascending: true });
+  const [
+    { data: rewards },
+    { data: redemptions },
+    { data: family },
+  ] = await Promise.all([
+    supabase
+      .from("rewards")
+      .select("*")
+      .eq("family_id", profile.family_id)
+      .eq("active", true)
+      .neq("type", "money_exchange")
+      .order("cost_points", { ascending: true }),
+    supabase
+      .from("reward_redemptions")
+      .select("*, rewards(name, emoji, type)")
+      .eq("redeemed_by", user.id)
+      .order("requested_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("families")
+      .select("money_exchange_rate, money_currency, money_exchange_enabled")
+      .eq("id", profile.family_id)
+      .single(),
+  ]);
 
-  const { data: redemptions } = await supabase
-    .from("reward_redemptions")
-    .select("*, rewards(name, emoji)")
-    .eq("redeemed_by", user.id)
-    .order("requested_at", { ascending: false })
-    .limit(10);
+  const moneyExchangeConfig =
+    family?.money_exchange_enabled && family.money_exchange_rate && family.money_currency
+      ? {
+          rate: family.money_exchange_rate,
+          currency: family.money_currency,
+          enabled: true as const,
+        }
+      : null;
 
   return (
     <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
@@ -41,6 +61,7 @@ export default async function ChildRewardsPage() {
         rewards={rewards ?? []}
         redemptions={redemptions ?? []}
         pointsBalance={profile.points_balance}
+        moneyExchangeConfig={moneyExchangeConfig}
       />
     </main>
   );

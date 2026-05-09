@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { PushSubscribeButton } from "@/components/push-subscribe";
 import { NotificationSettings } from "@/components/notification-settings";
+import { MoneyExchangeSettings } from "@/components/money-exchange-settings";
 import type { NotificationPrefs } from "@/server/actions/push";
 
 const DEFAULT_PREFS: NotificationPrefs = {
@@ -26,6 +27,7 @@ export default async function ParentDashboardPage() {
     { count: taskCount },
     { count: pendingCount },
     { data: children },
+    { data: family },
   ] = await Promise.all([
     supabase.from("tasks").select("*", { count: "exact", head: true })
       .eq("family_id", profile.family_id).eq("active", true),
@@ -33,6 +35,10 @@ export default async function ParentDashboardPage() {
       .eq("status", "pending"),
     supabase.from("profiles").select("display_name, emoji, points_balance")
       .eq("family_id", profile.family_id).eq("role", "child"),
+    supabase.from("families")
+      .select("money_exchange_rate, money_currency, money_exchange_enabled")
+      .eq("id", profile.family_id)
+      .single(),
   ]);
 
   const notifPrefs: NotificationPrefs = {
@@ -83,6 +89,20 @@ export default async function ParentDashboardPage() {
             <p className="text-xs text-muted-foreground mb-3">Recibir avisos cuando…</p>
             <NotificationSettings initialPrefs={notifPrefs} />
           </div>
+        </div>
+      </section>
+
+      {/* Money exchange */}
+      <section className="space-y-2">
+        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Canje por Dinero</h2>
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <MoneyExchangeSettings
+            initialConfig={{
+              rate: family?.money_exchange_rate ?? null,
+              currency: family?.money_currency ?? null,
+              enabled: family?.money_exchange_enabled ?? false,
+            }}
+          />
         </div>
       </section>
     </main>

@@ -30,7 +30,8 @@ type RedemptionRow = {
   requested_at: string;
   status: string;
   cost_points_at_redemption: number;
-  rewards: { name: string; emoji: string | null; cost_points: number } | null;
+  money_value_at_redemption: number | null;
+  rewards: { name: string; emoji: string | null; cost_points: number; type: string } | null;
   profiles: { display_name: string; emoji: string | null } | null;
 };
 
@@ -225,51 +226,61 @@ export function ApprovalsClient({
               </motion.div>
             ) : (
               <AnimatePresence initial={false}>
-                {redemptions.map((r) => (
-                  <motion.div
-                    key={r.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: 60, height: 0, marginBottom: 0 }}
-                    className="rounded-2xl border border-border bg-card p-4 space-y-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-3xl">{r.rewards?.emoji ?? "🎁"}</span>
-                      <div className="flex-1">
-                        <p className="font-semibold">{r.rewards?.name ?? "Recompensa"}</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {r.profiles?.emoji} {r.profiles?.display_name}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="size-3" />
-                            {r.requested_at.slice(0, 10)}
-                          </span>
-                          <span className="text-xs font-bold text-primary">
-                            {r.cost_points_at_redemption} pts
-                          </span>
+                {redemptions.map((r) => {
+                  const isMoney = r.rewards?.type === "money_exchange";
+                  return (
+                    <motion.div
+                      key={r.id}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: 60, height: 0, marginBottom: 0 }}
+                      className="rounded-2xl border border-border bg-card p-4 space-y-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-3xl">{isMoney ? "💰" : (r.rewards?.emoji ?? "🎁")}</span>
+                        <div className="flex-1">
+                          <p className="font-semibold">
+                            {isMoney ? "Canje por Dinero" : (r.rewards?.name ?? "Recompensa")}
+                          </p>
+                          {isMoney && r.money_value_at_redemption != null && (
+                            <p className="text-sm font-semibold text-emerald-600 mt-0.5">
+                              💵 {r.money_value_at_redemption.toFixed(2)} a entregar
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              {r.profiles?.emoji} {r.profiles?.display_name}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="size-3" />
+                              {r.requested_at.slice(0, 10)}
+                            </span>
+                            <span className="text-xs font-bold text-primary">
+                              {r.cost_points_at_redemption} pts
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleApproveRedemption(r.id)}
-                        className="flex-1 rounded-xl h-10 bg-success-emerald/90 hover:bg-success-emerald text-white font-semibold"
-                      >
-                        <CheckCircle2 className="size-4 mr-1" /> Entregar
-                      </Button>
-                      <Button
-                        onClick={() => handleRejectRedemption(r.id)}
-                        variant="outline"
-                        className="flex-1 rounded-xl h-10 hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <XCircle className="size-4 mr-1" /> Rechazar
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleApproveRedemption(r.id)}
+                          className="flex-1 rounded-xl h-10 bg-success-emerald/90 hover:bg-success-emerald text-white font-semibold"
+                        >
+                          <CheckCircle2 className="size-4 mr-1" /> Entregar
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectRedemption(r.id)}
+                          variant="outline"
+                          className="flex-1 rounded-xl h-10 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <XCircle className="size-4 mr-1" /> Rechazar
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             )}
           </motion.div>
