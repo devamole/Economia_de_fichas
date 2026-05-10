@@ -25,7 +25,7 @@ export default async function ChildLayout({
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-[calc(64px+env(safe-area-inset-bottom))]">
+    <div className="flex flex-col min-h-screen pb-[calc(88px+env(safe-area-inset-bottom))]">
       {children}
       <BottomNav role="child" />
     </div>

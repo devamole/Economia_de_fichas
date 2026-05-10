@@ -181,6 +181,10 @@
   min-height: 100%;
 }
 
+/* ─── Scrollbar hide utility ─── */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 /* ─── Child quest keyframes ─── */
 @keyframes blob-float-a {
   0%, 100% { transform: translateY(0px) scale(1); }
@@ -236,8 +240,14 @@
   50%       { transform: translateY(-5px); }
 }
 
+@keyframes nav-pill-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.88; }
+}
+
 .animate-reward-glow { animation: reward-glow 2.5s ease-in-out infinite; }
 .animate-bounce-soft { animation: bounce-soft 2s ease-in-out infinite; }
+.animate-nav-pill    { animation: nav-pill-breathe 3s ease-in-out infinite; }
 
 .animate-blob-a { animation: blob-float-a 9s ease-in-out infinite; }
 .animate-blob-b { animation: blob-float-b 13s ease-in-out infinite; }
