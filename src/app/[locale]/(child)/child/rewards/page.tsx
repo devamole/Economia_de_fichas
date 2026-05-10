@@ -58,31 +58,13 @@ export default async function ChildRewardsPage() {
         }
       : null;
 
-  const availablePoints = Math.max(0, profile.points_balance - pendingPoints);
-
   return (
-    <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold">Recompensas</h1>
-        <div className="flex flex-col items-end gap-0.5">
-          <div className="flex items-center gap-1 bg-primary/10 rounded-full px-3 py-1">
-            <span className="text-sm font-bold text-primary">{availablePoints} pts</span>
-          </div>
-          {pendingPoints > 0 && (
-            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium pr-1">
-              +{pendingPoints} en camino ⏳
-            </span>
-          )}
-        </div>
-      </div>
-
-      <ChildRewardsClient
-        rewards={rewards ?? []}
-        redemptions={redemptions ?? []}
-        pointsBalance={profile.points_balance}
-        pendingPoints={pendingPoints}
-        moneyExchangeConfig={moneyExchangeConfig}
-      />
-    </main>
+    <ChildRewardsClient
+      rewards={rewards ?? []}
+      redemptions={redemptions ?? []}
+      pointsBalance={profile.points_balance}
+      pendingPoints={pendingPoints}
+      moneyExchangeConfig={moneyExchangeConfig}
+    />
   );
 }

@@ -209,10 +209,52 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.22) translateY(-1px); }
 }
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(-6deg); }
+  40%       { transform: rotate(6deg); }
+  60%       { transform: rotate(-4deg); }
+  80%       { transform: rotate(4deg); }
+}
+@keyframes pop-in {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.3) rotate(4deg);  opacity: 1; }
+  80%  { transform: scale(0.92) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg);    opacity: 1; }
+}
+
+@keyframes reward-glow {
+  0%, 100% { box-shadow: 0 4px 20px -4px var(--glow-color, rgba(245,158,11,0.4)); }
+  50%       { box-shadow: 0 4px 32px 0px var(--glow-color, rgba(245,158,11,0.65)); }
+}
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+.animate-reward-glow { animation: reward-glow 2.5s ease-in-out infinite; }
+.animate-bounce-soft { animation: bounce-soft 2s ease-in-out infinite; }
 
 .animate-blob-a { animation: blob-float-a 9s ease-in-out infinite; }
 .animate-blob-b { animation: blob-float-b 13s ease-in-out infinite; }
 .animate-blob-c { animation: blob-float-c 11s ease-in-out infinite; }
 .animate-blob-d { animation: blob-float-d 7s ease-in-out infinite; }
-.animate-stamp { animation: stamp-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-.animate-flame { animation: flame-pulse 1.6s ease-in-out infinite; }
+.animate-stamp  { animation: stamp-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.animate-flame  { animation: flame-pulse 1.6s ease-in-out infinite; }
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.38) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+.animate-wiggle { animation: wiggle 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.animate-pop-in { animation: pop-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer { animation: none; }
+  .animate-wiggle  { animation: none; }
+  .animate-pop-in  { animation: none; }
+}
