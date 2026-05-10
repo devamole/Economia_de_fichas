@@ -63,6 +63,29 @@ const GROUP_COLORS = {
 
 type Group = keyof typeof GROUP_LABELS;
 
+// Stagger variants for card entrance
+const sectionVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
+};
+const cardVariants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { type: "spring" as const, stiffness: 260, damping: 22 },
+  },
+};
+
+function darkenHex(hex: string, amount = 0.15): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const d = (c: number) => Math.max(0, Math.floor(c * (1 - amount)));
+  return `#${d(r).toString(16).padStart(2, "0")}${d(g).toString(16).padStart(2, "0")}${d(b).toString(16).padStart(2, "0")}`;
+}
+
 function isShieldAvailable(shieldUsedAt: string | null | undefined, todayStr: string): boolean {
   if (!shieldUsedAt) return true;
   const days = Math.floor(
@@ -289,42 +312,95 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
               const { accent } = GROUP_COLORS[group];
               return (
                 <section key={group} className="space-y-3">
-                  {/* Colorful section header */}
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl leading-none">{GROUP_EMOJI[group]}</span>
-                    <span
-                      className="font-fredoka text-lg font-semibold leading-none"
-                      style={{ color: accent }}
+                  {/* Pill badge section header */}
+                  <m.div
+                    className="flex items-center gap-3"
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 280, damping: 24 }}
+                  >
+                    <div
+                      className="flex items-center gap-2 rounded-full px-3 py-1"
+                      style={{
+                        background: `linear-gradient(135deg, ${accent}25, ${accent}15)`,
+                        border: `1px solid ${accent}4D`,
+                      }}
                     >
-                      {GROUP_LABELS[group]}
-                    </span>
-                    <div className="flex-1 h-0.5 rounded-full" style={{ background: accent + "40" }} />
-                  </div>
-                  <AnimatePresence initial={false}>
-                    {groupTasks.map((task) => (
-                      <TaskItem
-                        key={task.id}
-                        task={task}
-                        group={group}
-                        done={false}
-                        showNearMiss={nearMissTaskId === task.id}
-                        onComplete={() => handleComplete(task)}
-                      />
-                    ))}
-                  </AnimatePresence>
+                      <span
+                        className="flex items-center justify-center size-5 rounded-full text-xs leading-none"
+                        style={{ background: `${accent}30` }}
+                      >
+                        {GROUP_EMOJI[group]}
+                      </span>
+                      <span
+                        className="font-fredoka text-xs font-bold uppercase tracking-[0.12em]"
+                        style={{ color: accent }}
+                      >
+                        {GROUP_LABELS[group]}
+                      </span>
+                    </div>
+                    <div
+                      className="flex-1 h-px rounded-full"
+                      style={{ background: `linear-gradient(90deg, ${accent}35, transparent)` }}
+                    />
+                  </m.div>
+
+                  {/* Staggered card list */}
+                  <m.div
+                    variants={sectionVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="space-y-3"
+                  >
+                    <AnimatePresence initial={false}>
+                      {groupTasks.map((task) => (
+                        <TaskItem
+                          key={task.id}
+                          task={task}
+                          group={group}
+                          done={false}
+                          showNearMiss={nearMissTaskId === task.id}
+                          onComplete={() => handleComplete(task)}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </m.div>
                 </section>
               );
             })}
 
             {completed.length > 0 && (
               <section className="space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl leading-none">✅</span>
-                  <span className="font-fredoka text-lg font-semibold leading-none text-emerald-600">
-                    Completadas
-                  </span>
-                  <div className="flex-1 h-0.5 rounded-full bg-emerald-200" />
-                </div>
+                {/* Completed pill header */}
+                <m.div
+                  className="flex items-center gap-3"
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ type: "spring", stiffness: 280, damping: 24 }}
+                >
+                  <div
+                    className="flex items-center gap-2 rounded-full px-3 py-1"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.08))",
+                      border: "1px solid rgba(16,185,129,0.3)",
+                    }}
+                  >
+                    <span
+                      className="flex items-center justify-center size-5 rounded-full text-xs leading-none"
+                      style={{ background: "rgba(16,185,129,0.2)" }}
+                    >
+                      ✅
+                    </span>
+                    <span className="font-fredoka text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">
+                      Completadas
+                    </span>
+                  </div>
+                  <div
+                    className="flex-1 h-px rounded-full"
+                    style={{ background: "linear-gradient(90deg, rgba(16,185,129,0.35), transparent)" }}
+                  />
+                </m.div>
+
                 {completed.map((task) => {
                   const comp = completions.find((c) => c.task_id === task.id);
                   const isPending = pendingCompletedIds.has(task.id);
@@ -372,110 +448,200 @@ function TaskItem({
   return (
     <m.div
       layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: done ? 0.6 : 1, y: 0 }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 28 }}
-      className="flex items-center gap-3 rounded-3xl bg-white p-3 shadow-sm"
-      style={{ borderLeft: `5px solid ${done ? "#10b981" : accent}` }}
+      variants={cardVariants}
+      exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.22 } }}
+      className={`rounded-[2rem] ${showNearMiss ? "animate-wiggle" : ""}`}
+      style={{
+        background: done ? "#ecfdf5" : bg,
+        border: `1px solid ${done ? "#10b98133" : accent + "33"}`,
+        boxShadow: `0 4px 20px -4px ${done ? "rgba(16,185,129,0.18)" : accent + "40"}`,
+        opacity: done ? 0.75 : 1,
+      }}
     >
-      {/* Emoji bubble */}
+      {/* Inner core — Doppelrand */}
       <div
-        className="relative shrink-0 size-14 rounded-2xl flex items-center justify-center text-3xl"
-        style={{ background: done ? "#ecfdf5" : bg }}
+        className="flex items-center gap-3 p-3 relative overflow-hidden"
+        style={{
+          borderRadius: "calc(2rem - 0.375rem)",
+          background: done ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.95)",
+          boxShadow: "inset 0 1px 1px rgba(255,255,255,0.9)",
+        }}
       >
-        {task.emoji ?? "⭐"}
-        {done && (
-          <span
-            className="animate-stamp absolute inset-0 flex items-center justify-center rounded-2xl text-xl font-black text-emerald-600"
-            style={{ background: "rgba(236,253,245,0.85)" }}
-          >
-            ✓
-          </span>
+        {/* Shimmer overlay — pending cards only */}
+        {!done && (
+          <div
+            className="animate-shimmer pointer-events-none absolute inset-0"
+            style={{ borderRadius: "inherit", zIndex: 0 }}
+            aria-hidden
+          />
         )}
-      </div>
 
-      {/* Text */}
-      <div className="flex-1 min-w-0">
-        <p
-          className={`font-fredoka text-base font-semibold leading-tight ${
-            done ? "line-through text-gray-400" : "text-gray-800"
-          }`}
+        {/* Emoji bubble */}
+        <div
+          className="relative z-10 shrink-0 size-14 rounded-2xl flex items-center justify-center text-3xl"
+          style={{ background: done ? "#ecfdf5" : bg }}
         >
-          {task.title}
-        </p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          {task.due_time && (
-            <span className="flex items-center gap-1 text-xs text-gray-400">
-              <Clock className="size-3" />
-              {task.due_time.slice(0, 5)}
-            </span>
-          )}
-          <span className="text-xs font-bold text-amber-500">
-            ⭐ {done && pointsAwarded ? `+${pointsAwarded}` : task.points} pts
-          </span>
-          {pendingSync && (
-            <span className="flex items-center gap-1 text-xs text-amber-500 font-medium">
-              <RefreshCw className="size-3" />
-              sync
+          {task.emoji ?? "⭐"}
+          {done && (
+            <span
+              className="animate-pop-in absolute inset-0 flex items-center justify-center rounded-2xl text-xl font-black text-emerald-600"
+              style={{ background: "rgba(236,253,245,0.88)" }}
+            >
+              ✓
             </span>
           )}
         </div>
-      </div>
 
-      {/* Action button */}
-      {done ? (
-        <m.div
-          initial={{ scale: 0, rotate: -15 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          className="shrink-0"
-        >
-          {pendingSync ? (
-            <RefreshCw className="size-8 text-amber-400 animate-spin" />
-          ) : (
-            <CheckCircle2 className="size-9 text-emerald-500" />
-          )}
-        </m.div>
-      ) : (
-        <div className="relative shrink-0">
-          <m.button
-            onClick={onComplete}
-            whileTap={{ scale: 0.82 }}
-            animate={
-              showNearMiss
-                ? {
-                    boxShadow: [
-                      "0 0 0px 0px rgba(251,191,36,0)",
-                      "0 0 16px 6px rgba(251,191,36,0.75)",
-                      "0 0 0px 0px rgba(251,191,36,0)",
-                    ],
-                  }
-                : { boxShadow: "0 0 0px 0px rgba(251,191,36,0)" }
-            }
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="size-14 rounded-2xl flex items-center justify-center border-2 transition-colors active:brightness-95"
-            style={{ background: bg, borderColor: accent }}
-            aria-label={`Completar: ${task.title}`}
+        {/* Text */}
+        <div className="relative z-10 flex-1 min-w-0">
+          <p
+            className={`font-fredoka text-base font-semibold leading-tight ${
+              done ? "line-through text-gray-400" : "text-gray-800"
+            }`}
           >
-            <span className="text-2xl" style={{ color: accent }}>○</span>
-          </m.button>
-
-          <AnimatePresence>
-            {showNearMiss && (
-              <m.span
-                className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap font-fredoka text-xs font-semibold text-amber-500 pointer-events-none"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.25 }}
-              >
-                ¡Casi! 💪
-              </m.span>
+            {task.title}
+          </p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {task.due_time && (
+              <span className="flex items-center gap-1 text-xs text-gray-400">
+                <Clock className="size-3" />
+                {task.due_time.slice(0, 5)}
+              </span>
             )}
-          </AnimatePresence>
+            <span className="text-xs font-bold text-amber-500">
+              ⭐ {done && pointsAwarded ? `+${pointsAwarded}` : task.points} pts
+            </span>
+            {pendingSync && (
+              <span className="flex items-center gap-1 text-xs text-amber-500 font-medium">
+                <RefreshCw className="size-3" />
+                sync
+              </span>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Action */}
+        <div className="relative z-10 shrink-0">
+          {done ? (
+            <m.div
+              initial={{ scale: 0, rotate: -15 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 20 }}
+            >
+              {pendingSync ? (
+                <RefreshCw className="size-8 text-amber-400 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-9 text-emerald-500" />
+              )}
+            </m.div>
+          ) : (
+            <CompletionButton
+              accent={accent}
+              accentDarker={darkenHex(accent)}
+              showNearMiss={showNearMiss}
+              taskTitle={task.title}
+              onComplete={onComplete!}
+            />
+          )}
+        </div>
+      </div>
     </m.div>
+  );
+}
+
+// ── Completion button with anime.js ripple ────────────────────────────────────
+
+function CompletionButton({
+  accent,
+  accentDarker,
+  showNearMiss,
+  taskTitle,
+  onComplete,
+}: {
+  accent: string;
+  accentDarker: string;
+  showNearMiss: boolean;
+  taskTitle: string;
+  onComplete: () => void;
+}) {
+  const rippleRef = useRef<HTMLDivElement>(null);
+
+  function triggerRipple() {
+    if (typeof window === "undefined" || !rippleRef.current) return;
+    const el = rippleRef.current;
+    import("animejs").then(({ animate }) => {
+      animate(el, {
+        scale: [1, 3.5],
+        opacity: [0.5, 0],
+        duration: 520,
+        ease: "outExpo",
+        onComplete() {
+          el.style.transform = "scale(1)";
+          el.style.opacity = "0";
+        },
+      });
+    });
+  }
+
+  function handleClick() {
+    triggerRipple();
+    onComplete();
+  }
+
+  return (
+    <div className="relative">
+      {/* Ripple burst — absolute sibling avoids overflow-hidden clip */}
+      <div
+        ref={rippleRef}
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{ background: `${accent}55`, opacity: 0, transformOrigin: "center" }}
+        aria-hidden
+      />
+
+      <m.button
+        onClick={handleClick}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.88 }}
+        animate={
+          showNearMiss
+            ? {
+                boxShadow: [
+                  `0 4px 16px -2px ${accent}55`,
+                  `0 4px 24px 4px ${accent}99`,
+                  `0 4px 16px -2px ${accent}55`,
+                ],
+              }
+            : { boxShadow: `0 4px 16px -2px ${accent}55` }
+        }
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative size-14 rounded-2xl flex items-center justify-center"
+        style={{
+          background: `linear-gradient(135deg, ${accent}, ${accentDarker})`,
+          border: "2px solid rgba(255,255,255,0.3)",
+        }}
+        aria-label={`Completar: ${taskTitle}`}
+      >
+        <span
+          className="text-white font-black text-2xl leading-none select-none"
+          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}
+        >
+          +
+        </span>
+      </m.button>
+
+      <AnimatePresence>
+        {showNearMiss && (
+          <m.span
+            className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap font-fredoka text-xs font-semibold text-amber-500 pointer-events-none"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.25 }}
+          >
+            ¡Casi! 💪
+          </m.span>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
