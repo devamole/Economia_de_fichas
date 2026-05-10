@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -223,6 +223,7 @@ export function TaskForm({ open, onOpenChange, task, kids, onSuccess, initialSta
                 name="startDate"
                 type="date"
                 defaultValue={task?.start_date ?? initialStartDate ?? new Date().toISOString().slice(0, 10)}
+                suppressHydrationWarning
                 required
                 className="rounded-xl h-12"
               />
@@ -253,13 +254,13 @@ export function TaskForm({ open, onOpenChange, task, kids, onSuccess, initialSta
           </div>
 
           {state?.error && (
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3"
             >
               {state.error}
-            </motion.p>
+            </m.p>
           )}
 
           <Button

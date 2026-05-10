@@ -32,7 +32,7 @@ export default async function ChildProfilePage() {
     <main className="flex flex-col flex-1 gap-6 p-4 pt-6 items-center text-center">
       <div className="flex flex-col items-center gap-3 pt-8">
         <span className="text-8xl">{profile.emoji ?? "🧒"}</span>
-        <h1 className="font-display text-2xl font-bold">{profile.display_name}</h1>
+        <h1 className="font-display text-2xl font-semibold">{profile.display_name}</h1>
         <div className="flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2">
           <span className="text-2xl font-bold text-primary">{profile.points_balance}</span>
           <span className="text-sm text-muted-foreground">puntos</span>

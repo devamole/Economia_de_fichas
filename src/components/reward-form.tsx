@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -37,18 +37,11 @@ export function RewardForm({ open, onClose, reward }: RewardFormProps) {
     }
   }, [state, isEditing, onClose]);
 
-  useEffect(() => {
-    if (open) {
-      setEmoji(reward?.emoji ?? "🎁");
-      setCostPoints(reward?.cost_points ?? 50);
-    }
-  }, [open, reward]);
-
   return (
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -56,7 +49,7 @@ export function RewardForm({ open, onClose, reward }: RewardFormProps) {
             className="fixed inset-0 z-40 bg-black/40"
             onClick={onClose}
           />
-          <motion.div
+          <m.div
             key="sheet"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -66,7 +59,7 @@ export function RewardForm({ open, onClose, reward }: RewardFormProps) {
             style={{ maxHeight: "92dvh", overflowY: "auto" }}
           >
             <div className="sticky top-0 bg-background pt-4 px-4 pb-2 flex items-center justify-between">
-              <h2 className="font-display font-bold text-lg">
+              <h2 className="font-display font-semibold text-lg">
                 {isEditing ? "Editar recompensa" : "Nueva recompensa"}
               </h2>
               <button onClick={onClose} className="size-8 flex items-center justify-center rounded-full hover:bg-muted">
@@ -156,7 +149,7 @@ export function RewardForm({ open, onClose, reward }: RewardFormProps) {
                 {pending ? "Guardando…" : isEditing ? "Guardar cambios" : "Crear recompensa"}
               </Button>
             </form>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

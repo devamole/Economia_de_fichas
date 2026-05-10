@@ -26,19 +26,10 @@ export default async function TodayPage() {
   const localNow = toZonedTime(new Date(), timezone);
   const todayStr = localNow.toISOString().slice(0, 10);
 
-  // Fetch all active tasks assigned to this kid
-  const { data: allTasks } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("assigned_to", user.id)
-    .eq("active", true);
-
-  // Fetch today's completions
-  const { data: completions } = await supabase
-    .from("task_completions")
-    .select("*")
-    .eq("completed_by", user.id)
-    .eq("completion_date", todayStr);
+  const [{ data: allTasks }, { data: completions }] = await Promise.all([
+    supabase.from("tasks").select("*").eq("assigned_to", user.id).eq("active", true),
+    supabase.from("task_completions").select("*").eq("completed_by", user.id).eq("completion_date", todayStr),
+  ]);
 
   const todaysTasks = getTasksForDate(allTasks ?? [], localNow);
   const completedIds = new Set((completions ?? []).map((c) => c.task_id));

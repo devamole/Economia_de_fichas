@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, getDay, format,
@@ -13,23 +13,29 @@ import type { Task, Profile } from "@/types";
 
 type CompletionMeta = { task_id: string; completion_date: string };
 
+const EMPTY_COMPLETIONS: CompletionMeta[] = [];
+const EMPTY_KIDS: Pick<Profile, "id" | "display_name" | "emoji">[] = [];
+
 interface TaskCalendarProps {
   tasks: Task[];
   completions?: CompletionMeta[];
   kids?: Pick<Profile, "id" | "display_name" | "emoji">[];
   onAddTaskForDate?: (date: string) => void;
   isParent?: boolean;
+  todayStr?: string;
 }
 
 export function TaskCalendar({
   tasks,
-  completions = [],
-  kids = [],
+  completions = EMPTY_COMPLETIONS,
+  kids = EMPTY_KIDS,
   onAddTaskForDate,
   isParent = false,
+  todayStr,
 }: TaskCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const today = useMemo(() => (todayStr ? parseISO(todayStr) : new Date()), [todayStr]);
+  const [currentMonth, setCurrentMonth] = useState(today);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(today);
 
   const completedTaskIds = useMemo(
     () => new Set(completions.map((c) => `${c.task_id}:${c.completion_date}`)),
@@ -74,14 +80,14 @@ export function TaskCalendar({
         >
           <ChevronLeft className="size-5" />
         </button>
-        <motion.h2
+        <m.h2
           key={currentMonth.toISOString()}
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="font-display font-bold text-lg capitalize"
+          className="font-display font-semibold text-lg capitalize"
         >
           {format(currentMonth, "MMMM yyyy", { locale: es })}
-        </motion.h2>
+        </m.h2>
         <button
           onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
           className="size-9 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"
@@ -102,7 +108,7 @@ export function TaskCalendar({
 
       {/* Day cells */}
       <AnimatePresence mode="wait">
-        <motion.div
+        <m.div
           key={currentMonth.toISOString()}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -117,11 +123,12 @@ export function TaskCalendar({
             const key = day.toISOString().slice(0, 10);
             const count = taskCountByDay.get(key) ?? 0;
             const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
-            const isToday = isSameDay(day, new Date());
+            const isToday = isSameDay(day, today);
 
             return (
               <button
                 key={key}
+                suppressHydrationWarning
                 onClick={() => setSelectedDate((prev) => (prev && isSameDay(prev, day) ? null : day))}
                 className={`relative flex flex-col items-center py-1.5 rounded-2xl transition-colors ${
                   isSelected
@@ -149,13 +156,13 @@ export function TaskCalendar({
               </button>
             );
           })}
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {/* Selected day panel */}
       <AnimatePresence>
         {selectedDate && (
-          <motion.div
+          <m.div
             key={selectedDateStr}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -213,7 +220,7 @@ export function TaskCalendar({
                 })}
               </ul>
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

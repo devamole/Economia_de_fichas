@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface Props {
   points: number;
@@ -31,7 +31,7 @@ export function PointsCounter({ points }: Props) {
 
   return (
     <div className="relative inline-flex items-baseline gap-2">
-      <motion.span
+      <m.span
         key={points}
         initial={{ scale: 0.85, opacity: 0.6 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -39,12 +39,12 @@ export function PointsCounter({ points }: Props) {
         className="font-display text-5xl font-bold tabular"
       >
         {points}
-      </motion.span>
+      </m.span>
       <span className="text-xl text-muted-foreground font-normal">pts</span>
 
       <AnimatePresence>
         {delta !== null && (
-          <motion.span
+          <m.span
             key={deltaKey}
             className="absolute -top-2 left-0 text-lg font-bold text-emerald-500 pointer-events-none select-none"
             initial={{ opacity: 1, y: 0 }}
@@ -53,7 +53,7 @@ export function PointsCounter({ points }: Props) {
             transition={{ duration: 0.9, ease: "easeOut" }}
           >
             +{delta}
-          </motion.span>
+          </m.span>
         )}
       </AnimatePresence>
     </div>

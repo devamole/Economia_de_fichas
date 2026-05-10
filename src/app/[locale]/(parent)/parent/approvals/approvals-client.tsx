@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Clock, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -118,7 +118,7 @@ export function ApprovalsClient({
               }`}
             >
               {isActive && (
-                <motion.div
+                <m.div
                   layoutId="tab-bg"
                   className="absolute inset-0 rounded-lg bg-background shadow-sm"
                   style={{ zIndex: 0 }}
@@ -138,7 +138,7 @@ export function ApprovalsClient({
       {/* Task completions tab */}
       <AnimatePresence mode="wait">
         {tab === "tasks" && (
-          <motion.div
+          <m.div
             key="tasks"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -146,18 +146,18 @@ export function ApprovalsClient({
             className="space-y-3"
           >
             {completions.length === 0 ? (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground"
               >
                 <CheckCircle2 className="size-10 text-success-emerald" />
                 <p>No hay tareas pendientes de aprobación. ✅</p>
-              </motion.div>
+              </m.div>
             ) : (
               <AnimatePresence initial={false}>
                 {completions.map((c) => (
-                  <motion.div
+                  <m.div
                     key={c.id}
                     layout
                     initial={{ opacity: 0, y: 8 }}
@@ -199,16 +199,16 @@ export function ApprovalsClient({
                         <XCircle className="size-4 mr-1" /> Rechazar
                       </Button>
                     </div>
-                  </motion.div>
+                  </m.div>
                 ))}
               </AnimatePresence>
             )}
-          </motion.div>
+          </m.div>
         )}
 
         {/* Redemptions tab */}
         {tab === "rewards" && (
-          <motion.div
+          <m.div
             key="rewards"
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -216,20 +216,20 @@ export function ApprovalsClient({
             className="space-y-3"
           >
             {redemptions.length === 0 ? (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground"
               >
                 <Gift className="size-10 text-primary/50" />
                 <p>No hay recompensas pendientes de entrega.</p>
-              </motion.div>
+              </m.div>
             ) : (
               <AnimatePresence initial={false}>
                 {redemptions.map((r) => {
                   const isMoney = r.rewards?.type === "money_exchange";
                   return (
-                    <motion.div
+                    <m.div
                       key={r.id}
                       layout
                       initial={{ opacity: 0, y: 8 }}
@@ -278,12 +278,12 @@ export function ApprovalsClient({
                           <XCircle className="size-4 mr-1" /> Rechazar
                         </Button>
                       </div>
-                    </motion.div>
+                    </m.div>
                   );
                 })}
               </AnimatePresence>
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

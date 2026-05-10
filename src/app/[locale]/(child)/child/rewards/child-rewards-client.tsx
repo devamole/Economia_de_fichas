@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -101,7 +101,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
     <div className="space-y-6">
       {/* Money exchange card */}
       {moneyExchangeConfig && (
-        <motion.button
+        <m.button
           whileTap={{ scale: 0.96 }}
           onClick={() => { setConfirmingMoney(true); setMoneyPoints(""); }}
           className="w-full rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 text-left hover:border-primary/60 transition-colors"
@@ -118,7 +118,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
               Tus pts
             </span>
           </div>
-        </motion.button>
+        </m.button>
       )}
 
       {/* Reward catalog */}
@@ -133,7 +133,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
             {rewards.map((reward) => {
               const affordable = canAfford(reward.cost_points);
               return (
-                <motion.button
+                <m.button
                   key={reward.id}
                   whileTap={affordable ? { scale: 0.96 } : {}}
                   onClick={() => affordable && setConfirming(reward)}
@@ -154,7 +154,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
                       Bloqueada
                     </div>
                   )}
-                </motion.button>
+                </m.button>
               );
             })}
           </div>
@@ -199,7 +199,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
       <AnimatePresence>
         {confirmingMoney && moneyExchangeConfig && (
           <>
-            <motion.div
+            <m.div
               key="money-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -207,7 +207,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
               className="fixed inset-0 z-40 bg-black/50"
               onClick={() => setConfirmingMoney(false)}
             />
-            <motion.div
+            <m.div
               key="money-dialog"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -216,14 +216,15 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
               className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 rounded-3xl bg-background border border-border p-6 space-y-4 text-center"
             >
               <span className="text-6xl block">💰</span>
-              <h2 className="font-display font-bold text-xl">Canjear por Dinero</h2>
+              <h2 className="font-display font-semibold text-xl">Canjear por Dinero</h2>
               <p className="text-sm text-muted-foreground">
                 1 pt = {moneyExchangeConfig.rate.toFixed(2)} {moneyExchangeConfig.currency}
               </p>
 
               <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">¿Cuántos puntos quieres canjear?</label>
+                <label htmlFor="money-points" className="text-sm font-medium">¿Cuántos puntos quieres canjear?</label>
                 <Input
+                  id="money-points"
                   type="number"
                   min={1}
                   max={balance}
@@ -272,7 +273,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
                   {loadingMoney ? "Canjeando…" : "Canjear 💰"}
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>
@@ -281,7 +282,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
       <AnimatePresence>
         {confirming && (
           <>
-            <motion.div
+            <m.div
               key="backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -289,7 +290,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
               className="fixed inset-0 z-40 bg-black/50"
               onClick={() => setConfirming(null)}
             />
-            <motion.div
+            <m.div
               key="dialog"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -298,7 +299,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
               className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 rounded-3xl bg-background border border-border p-6 space-y-4 text-center"
             >
               <span className="text-6xl block">{confirming.emoji ?? "🎁"}</span>
-              <h2 className="font-display font-bold text-xl">{confirming.name}</h2>
+              <h2 className="font-display font-semibold text-xl">{confirming.name}</h2>
               {confirming.description && (
                 <p className="text-sm text-muted-foreground">{confirming.description}</p>
               )}
@@ -322,7 +323,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
                   {loading ? "Canjeando…" : "Canjear 🎉"}
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

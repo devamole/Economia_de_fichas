@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { m, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useWebAudio } from "@/hooks/use-web-audio";
 
 type Phase = "anticipate" | "explode" | "exhibit" | "done";
 
-const OYEE_LETTERS = ["O", "Y", "E", "E", "E", "E", "E"];
+const OYEE_LETTERS = [
+  { id: "o0", letter: "O" },
+  { id: "y1", letter: "Y" },
+  { id: "e2", letter: "E" },
+  { id: "e3", letter: "E" },
+  { id: "e4", letter: "E" },
+  { id: "e5", letter: "E" },
+  { id: "e6", letter: "E" },
+];
 
 interface Props {
   points: number;
@@ -99,7 +107,7 @@ export function OyeeCelebration({ points, basePoints, onComplete }: Props) {
   return (
     <AnimatePresence>
       {phase !== "done" && (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -108,15 +116,15 @@ export function OyeeCelebration({ points, basePoints, onComplete }: Props) {
           onClick={phase === "exhibit" ? onComplete : undefined}
         >
           {/* Backdrop */}
-          <motion.div
-            className="absolute inset-0 bg-black"
+          <m.div
+            className="absolute inset-0 bg-zinc-950"
             animate={{ opacity: phase === "anticipate" ? 0.2 : 0.88 }}
             transition={{ duration: 0.3 }}
           />
 
           {/* Phase 1 — golden aura ring */}
           {phase === "anticipate" && (
-            <motion.div
+            <m.div
               className="absolute size-32 rounded-full"
               animate={{
                 boxShadow: [
@@ -132,7 +140,7 @@ export function OyeeCelebration({ points, basePoints, onComplete }: Props) {
 
           {/* White flash */}
           {phase === "explode" && (
-            <motion.div
+            <m.div
               className="absolute inset-0 bg-white pointer-events-none"
               initial={{ opacity: 0 }}
               animate={{ opacity: [0, 0.9, 0] }}
@@ -145,9 +153,9 @@ export function OyeeCelebration({ points, basePoints, onComplete }: Props) {
             {(phase === "explode" || phase === "exhibit") && (
               <div className="relative z-10 flex flex-col items-center gap-4">
                 <div className="flex">
-                  {OYEE_LETTERS.map((letter, i) => (
-                    <motion.span
-                      key={i}
+                  {OYEE_LETTERS.map(({ id, letter }, i) => (
+                    <m.span
+                      key={id}
                       className="font-black text-6xl text-yellow-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.8)]"
                       initial={{ opacity: 0, y: 40, scale: 0.5 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -159,55 +167,55 @@ export function OyeeCelebration({ points, basePoints, onComplete }: Props) {
                       }}
                     >
                       {letter}
-                    </motion.span>
+                    </m.span>
                   ))}
                 </div>
 
-                <motion.p
+                <m.p
                   className="text-white font-black text-3xl tracking-tight drop-shadow-lg"
-                  initial={{ scale: 0, opacity: 0 }}
+                  initial={{ scale: 0.85, opacity: 0 }}
                   animate={{ scale: [0, 1.3, 1], opacity: 1 }}
                   transition={{ delay: 0.6, duration: 0.5, type: "spring" }}
                 >
                   ¡LO LOGRASTE!
-                </motion.p>
+                </m.p>
 
                 {/* Exhibit phase */}
                 {phase === "exhibit" && (
                   <>
-                    <motion.p
+                    <m.p
                       className="text-yellow-300 font-black text-6xl drop-shadow-lg"
                       initial={{ y: -60, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ type: "spring", stiffness: 300, damping: 18 }}
                     >
-                      <motion.span>{displayCount}</motion.span>
+                      <m.span>{displayCount}</m.span>
                       <span className="text-3xl ml-1">pts</span>
-                    </motion.p>
+                    </m.p>
 
-                    <motion.p
+                    <m.p
                       className="text-white text-lg font-semibold"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: [0, 1, 1, 0] }}
                       transition={{ duration: 1.1, times: [0, 0.15, 0.7, 1] }}
                     >
                       ¡Eres imparable! 🚀
-                    </motion.p>
+                    </m.p>
 
-                    <motion.p
+                    <m.p
                       className="text-white/60 text-sm mt-2"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.5 }}
                     >
                       Toca para continuar
-                    </motion.p>
+                    </m.p>
                   </>
                 )}
               </div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

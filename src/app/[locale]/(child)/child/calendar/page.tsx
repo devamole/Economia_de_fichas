@@ -18,24 +18,19 @@ export default async function ChildCalendarPage() {
   const timezone = (profile.families as { timezone: string } | null)?.timezone ?? "America/Bogota";
   const todayStr = toZonedTime(new Date(), timezone).toISOString().slice(0, 10);
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("assigned_to", user.id)
-    .eq("active", true);
-
-  const { data: completions } = await supabase
-    .from("task_completions")
-    .select("task_id, completion_date")
-    .eq("completed_by", user.id);
+  const [{ data: tasks }, { data: completions }] = await Promise.all([
+    supabase.from("tasks").select("*").eq("assigned_to", user.id).eq("active", true),
+    supabase.from("task_completions").select("task_id, completion_date").eq("completed_by", user.id),
+  ]);
 
   return (
     <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
-      <h1 className="font-display text-2xl font-bold">Calendario</h1>
+      <h1 className="font-display text-2xl font-semibold">Calendario</h1>
       <TaskCalendar
         tasks={tasks ?? []}
         completions={completions ?? []}
         isParent={false}
+        todayStr={todayStr}
       />
     </main>
   );

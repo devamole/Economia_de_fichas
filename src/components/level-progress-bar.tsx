@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { getUserLevel, getNextLevelThreshold, LEVEL_THRESHOLDS } from "@/types";
 
 interface Props {
@@ -33,7 +33,7 @@ export function LevelProgressBar({ totalPoints }: Props) {
       </div>
 
       <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <motion.div
+        <m.div
           className={`h-full rounded-full ${
             isMax
               ? "bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-[length:200%_100%]"

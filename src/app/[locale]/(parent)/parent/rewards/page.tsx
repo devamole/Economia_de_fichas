@@ -30,7 +30,7 @@ export default async function RewardsPage() {
 
   return (
     <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
-      <h1 className="font-display text-2xl font-bold">Recompensas</h1>
+      <h1 className="font-display text-2xl font-semibold">Recompensas</h1>
       <RewardsClient
         rewards={rewards ?? []}
         moneyExchangeConfig={{

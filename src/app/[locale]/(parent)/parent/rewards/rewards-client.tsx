@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useOptimistic } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,15 +39,18 @@ export function RewardsClient({
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | undefined>();
+  const [formKey, setFormKey] = useState(0);
 
   function openNew() {
     setEditingReward(undefined);
     setFormOpen(true);
+    setFormKey((k) => k + 1);
   }
 
   function openEdit(reward: Reward) {
     setEditingReward(reward);
     setFormOpen(true);
+    setFormKey((k) => k + 1);
   }
 
   async function handleToggle(reward: Reward) {
@@ -78,7 +81,7 @@ export function RewardsClient({
               }`}
             >
               {isActive && (
-                <motion.div
+                <m.div
                   layoutId="rewards-tab-bg"
                   className="absolute inset-0 rounded-lg bg-background shadow-sm"
                   style={{ zIndex: 0 }}
@@ -94,7 +97,7 @@ export function RewardsClient({
 
       <AnimatePresence mode="wait">
         {tab === "rewards" && (
-          <motion.div
+          <m.div
             key="rewards"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -108,18 +111,18 @@ export function RewardsClient({
             </div>
 
             {rewards.length === 0 ? (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground"
               >
                 <span className="text-5xl">🎁</span>
                 <p>Aún no hay recompensas. ¡Crea la primera!</p>
-              </motion.div>
+              </m.div>
             ) : (
               <AnimatePresence initial={false}>
                 {rewards.map((reward) => (
-                  <motion.div
+                  <m.div
                     key={reward.id}
                     layout
                     initial={{ opacity: 0, y: 8 }}
@@ -169,15 +172,15 @@ export function RewardsClient({
                         <Trash2 className="size-4" /> Eliminar
                       </Button>
                     </div>
-                  </motion.div>
+                  </m.div>
                 ))}
               </AnimatePresence>
             )}
-          </motion.div>
+          </m.div>
         )}
 
         {tab === "money" && (
-          <motion.div
+          <m.div
             key="money"
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -193,11 +196,12 @@ export function RewardsClient({
               </div>
               <MoneyExchangeSettings initialConfig={moneyExchangeConfig} />
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       <RewardForm
+        key={formKey}
         open={formOpen}
         onClose={() => setFormOpen(false)}
         reward={editingReward}

@@ -6,11 +6,11 @@ import { routing } from "@/i18n/routing";
 
 export function LocaleSwitcher() {
   const locale = useLocale();
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
 
   function switchLocale(next: string) {
-    router.replace(pathname, { locale: next });
+    replace(pathname, { locale: next });
   }
 
   if (routing.locales.length <= 1) return null;

@@ -51,7 +51,7 @@ export default async function ChildRewardsPage() {
   return (
     <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold">Recompensas</h1>
+        <h1 className="font-display text-2xl font-semibold">Recompensas</h1>
         <div className="flex items-center gap-1 bg-primary/10 rounded-full px-3 py-1">
           <span className="text-sm font-bold text-primary">{profile.points_balance} pts</span>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Shield } from "lucide-react";
 import { toast } from "sonner";
 import { activateStreakShield } from "@/server/actions/streak";
@@ -24,7 +24,7 @@ export function StreakBadge({ streak, shieldAvailable, todayStr }: Props) {
   return (
     <div className="flex items-center gap-2">
       <AnimatePresence mode="wait">
-        <motion.div
+        <m.div
           key={streak}
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -40,7 +40,7 @@ export function StreakBadge({ streak, shieldAvailable, todayStr }: Props) {
           ) : (
             "Sin racha"
           )}
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {shieldAvailable && streak > 0 && (

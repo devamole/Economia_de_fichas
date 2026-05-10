@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface Props {
   completed: number;
@@ -18,14 +18,16 @@ export function DailyProgressBar({ completed, total }: Props) {
 
   useEffect(() => {
     const prev = prevPctRef.current;
+    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
     MILESTONES.forEach((m) => {
       if (prev < m && pct >= m) {
         const id = ++sparkIdRef.current;
         setSparks((s) => [...s, { id, pct: m }]);
-        setTimeout(() => setSparks((s) => s.filter((x) => x.id !== id)), 900);
+        timeoutIds.push(setTimeout(() => setSparks((s) => s.filter((x) => x.id !== id)), 900));
       }
     });
     prevPctRef.current = pct;
+    return () => { for (const id of timeoutIds) clearTimeout(id); };
   }, [pct]);
 
   if (total === 0) return null;
@@ -43,7 +45,7 @@ export function DailyProgressBar({ completed, total }: Props) {
       </div>
 
       <div className="relative h-2.5 rounded-full bg-muted overflow-visible">
-        <motion.div
+        <m.div
           className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 origin-left"
           animate={{
             width: `${pct}%`,
@@ -60,7 +62,7 @@ export function DailyProgressBar({ completed, total }: Props) {
         {/* Milestone sparks */}
         <AnimatePresence>
           {sparks.map((spark) => (
-            <motion.span
+            <m.span
               key={spark.id}
               className="absolute top-1/2 -translate-y-1/2 text-yellow-400 text-xs pointer-events-none select-none"
               style={{ left: `${spark.pct}%` }}
@@ -70,7 +72,7 @@ export function DailyProgressBar({ completed, total }: Props) {
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               ✨
-            </motion.span>
+            </m.span>
           ))}
         </AnimatePresence>
       </div>

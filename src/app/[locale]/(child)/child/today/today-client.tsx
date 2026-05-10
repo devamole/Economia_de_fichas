@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useOptimistic, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, Clock, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -187,7 +187,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
       {/* Minor boost silver flash */}
       <AnimatePresence>
         {showMinorFlash && (
-          <motion.div
+          <m.div
             key={minorBoostKey}
             className="fixed inset-0 z-40 pointer-events-none"
             style={{ background: "radial-gradient(ellipse at center, rgba(148,163,184,0.55) 0%, transparent 70%)" }}
@@ -240,14 +240,14 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
       <div className="flex-1 px-4 space-y-6">
         {tasks.length === 0 ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center py-20 text-center gap-3"
           >
             <span className="text-5xl">🚀</span>
             <p className="text-muted-foreground">{t("noTasks")}</p>
-          </motion.div>
+          </m.div>
         ) : (
           <>
             {groups.map((group) => {
@@ -318,7 +318,7 @@ function TaskItem({
   pendingSync?: boolean;
 }) {
   return (
-    <motion.div
+    <m.div
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: done ? 0.55 : 1, y: 0 }}
@@ -354,9 +354,9 @@ function TaskItem({
       </div>
 
       {done ? (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+        <m.div
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 500, damping: 20 }}
         >
           {pendingSync ? (
@@ -364,10 +364,10 @@ function TaskItem({
           ) : (
             <CheckCircle2 className="size-8 text-success-emerald shrink-0" />
           )}
-        </motion.div>
+        </m.div>
       ) : (
         <div className="relative shrink-0">
-          <motion.button
+          <m.button
             onClick={onComplete}
             animate={
               showNearMiss
@@ -385,12 +385,12 @@ function TaskItem({
             aria-label={`Completar: ${task.title}`}
           >
             <Circle className="size-5 text-muted-foreground" />
-          </motion.button>
+          </m.button>
 
           {/* Near-miss ephemeral text */}
           <AnimatePresence>
             {showNearMiss && (
-              <motion.span
+              <m.span
                 className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-amber-500 pointer-events-none"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -398,11 +398,11 @@ function TaskItem({
                 transition={{ duration: 0.25 }}
               >
                 ¡Casi! Sigue así
-              </motion.span>
+              </m.span>
             )}
           </AnimatePresence>
         </div>
       )}
-    </motion.div>
+    </m.div>
   );
 }

@@ -14,22 +14,19 @@ export default async function ChildrenPage() {
     .single();
   if (!profile) redirect("/login");
 
-  const { data: family } = await supabase
-    .from("families")
-    .select("name, family_code")
-    .eq("id", profile.family_id)
-    .single();
-
-  const { data: children } = await supabase
-    .from("profiles")
-    .select("id, display_name, emoji, points_balance")
-    .eq("family_id", profile.family_id)
-    .eq("role", "child")
-    .order("display_name");
+  const [{ data: family }, { data: children }] = await Promise.all([
+    supabase.from("families").select("name, family_code").eq("id", profile.family_id).single(),
+    supabase
+      .from("profiles")
+      .select("id, display_name, emoji, points_balance")
+      .eq("family_id", profile.family_id)
+      .eq("role", "child")
+      .order("display_name"),
+  ]);
 
   return (
     <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
-      <h1 className="font-display text-2xl font-bold">Hijos</h1>
+      <h1 className="font-display text-2xl font-semibold">Hijos</h1>
       {family && (
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Código de familia</p>
@@ -41,7 +38,7 @@ export default async function ChildrenPage() {
           </p>
         </div>
       )}
-      <ChildrenClient children={children ?? []} />
+      <ChildrenClient initialChildren={children ?? []} />
     </main>
   );
 }

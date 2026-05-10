@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,8 @@ const EMOJI_OPTIONS = ["🧒", "👦", "👧", "🧒‍♂️", "🧒‍♀️",
 
 type Child = { id: string; display_name: string; emoji: string | null; points_balance: number };
 
-export function ChildrenClient({ children: initial }: { children: Child[] }) {
-  const [children] = useState<Child[]>(initial);
+export function ChildrenClient({ initialChildren }: { initialChildren: Child[] }) {
+  const [children] = useState<Child[]>(initialChildren);
   const [formOpen, setFormOpen] = useState(false);
   const [emoji, setEmoji] = useState("🧒");
   const [state, formAction, pending] = useActionState(createChild, null);
@@ -37,14 +37,14 @@ export function ChildrenClient({ children: initial }: { children: Child[] }) {
       </div>
 
       {children.length === 0 ? (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground"
         >
           <span className="text-5xl">👨‍👩‍👧‍👦</span>
           <p>Aún no hay hijos. ¡Añade el primero!</p>
-        </motion.div>
+        </m.div>
       ) : (
         <div className="space-y-3">
           {children.map((child) => (
@@ -63,7 +63,7 @@ export function ChildrenClient({ children: initial }: { children: Child[] }) {
       <AnimatePresence>
         {formOpen && (
           <>
-            <motion.div
+            <m.div
               key="backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -71,7 +71,7 @@ export function ChildrenClient({ children: initial }: { children: Child[] }) {
               className="fixed inset-0 z-40 bg-black/40"
               onClick={() => setFormOpen(false)}
             />
-            <motion.div
+            <m.div
               key="sheet"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
@@ -81,7 +81,7 @@ export function ChildrenClient({ children: initial }: { children: Child[] }) {
               style={{ maxHeight: "90dvh", overflowY: "auto" }}
             >
               <div className="sticky top-0 bg-background pt-4 px-4 pb-2 flex items-center justify-between">
-                <h2 className="font-display font-bold text-lg">Añadir hijo</h2>
+                <h2 className="font-display font-semibold text-lg">Añadir hijo</h2>
                 <button onClick={() => setFormOpen(false)} className="size-8 flex items-center justify-center rounded-full hover:bg-muted">
                   <X className="size-5" />
                 </button>
@@ -129,7 +129,7 @@ export function ChildrenClient({ children: initial }: { children: Child[] }) {
                   {pending ? "Creando…" : "Crear cuenta"}
                 </Button>
               </form>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

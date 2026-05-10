@@ -14,7 +14,7 @@ export default async function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-6 bg-background">
       <div className="text-center space-y-2">
         <div className="text-5xl">🏆</div>
-        <h1 className="font-display text-3xl font-bold bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] bg-clip-text text-transparent">
+        <h1 className="font-display text-3xl font-semibold text-primary">
           Fichas &amp; Premios
         </h1>
       </div>

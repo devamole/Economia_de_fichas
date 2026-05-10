@@ -43,7 +43,7 @@ export default async function ParentDashboardPage() {
   return (
     <main className="flex flex-col flex-1 gap-6 p-4 pt-6">
       <div>
-        <h1 className="font-display text-2xl font-bold">Hola, {profile.display_name} 👋</h1>
+        <h1 className="font-display text-2xl font-semibold">Hola, {profile.display_name} 👋</h1>
         <p className="text-sm text-muted-foreground">Panel de control</p>
       </div>
 

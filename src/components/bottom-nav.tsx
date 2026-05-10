@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { usePathname } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import {
@@ -59,7 +59,7 @@ export function BottomNav({ role }: BottomNavProps) {
               href={item.href}
               className="relative flex min-w-[56px] flex-1 flex-col items-center gap-1 py-2 px-1"
             >
-              <motion.div
+              <m.div
                 animate={isActive ? { scale: 1.15 } : { scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 className={cn(
@@ -68,7 +68,7 @@ export function BottomNav({ role }: BottomNavProps) {
                 )}
               >
                 {isActive && (
-                  <motion.div
+                  <m.div
                     layoutId="nav-indicator"
                     className="absolute -top-1 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-primary"
                   />
@@ -77,7 +77,7 @@ export function BottomNav({ role }: BottomNavProps) {
                 <span className="text-[10px] font-medium leading-none">
                   {item.label}
                 </span>
-              </motion.div>
+              </m.div>
             </Link>
           );
         })}

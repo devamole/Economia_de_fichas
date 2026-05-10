@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ type Step = "code" | "pick" | "pin";
 
 export default function ChildLoginPage() {
   const t = useTranslations("auth");
-  const router = useRouter();
+  const { push } = useRouter();
 
   const [step, setStep] = useState<Step>("code");
   const [familyCode, setFamilyCode] = useState("");
@@ -74,21 +74,21 @@ export default function ChildLoginPage() {
       setPin("");
       return;
     }
-    router.push("/child/today");
+    push("/child/today");
   }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 bg-background">
       <div className="text-center space-y-1">
         <div className="text-5xl">🏆</div>
-        <h1 className="font-display text-2xl font-bold bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] bg-clip-text text-transparent">
+        <h1 className="font-display text-2xl font-semibold text-primary">
           Fichas &amp; Premios
         </h1>
       </div>
 
       <AnimatePresence mode="wait">
         {step === "code" && (
-          <motion.div
+          <m.div
             key="code"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -120,11 +120,11 @@ export default function ChildLoginPage() {
                 {loading ? "Buscando…" : "Continuar"}
               </Button>
             </form>
-          </motion.div>
+          </m.div>
         )}
 
         {step === "pick" && family && (
-          <motion.div
+          <m.div
             key="pick"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -153,11 +153,11 @@ export default function ChildLoginPage() {
             >
               <ChevronLeft className="size-4 mr-1" /> Cambiar código
             </Button>
-          </motion.div>
+          </m.div>
         )}
 
         {step === "pin" && selected && (
-          <motion.div
+          <m.div
             key="pin"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -223,7 +223,7 @@ export default function ChildLoginPage() {
             >
               <ChevronLeft className="size-4 mr-1" /> Elegir otro perfil
             </Button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

@@ -2,7 +2,7 @@
 
 import { useMemo, useOptimistic, useState } from "react";
 import { format, isSameDay, parseISO } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Plus, Pencil, PowerOff, Power, Trash2, Clock } from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,12 @@ type TaskSection = {
   label: string;
   tasks: Task[];
 };
+
+const weekdayFormatterEs = new Intl.DateTimeFormat("es", { weekday: "long" });
+const weekdayFormatterEn = new Intl.DateTimeFormat("en", { weekday: "long" });
+function getWeekdayFormatter(locale: string): Intl.DateTimeFormat {
+  return locale === "en" ? weekdayFormatterEn : weekdayFormatterEs;
+}
 
 export function TasksClient({
   initialTasks,
@@ -83,7 +89,7 @@ export function TasksClient({
   return (
     <main className="flex flex-col flex-1 gap-4 p-4 pt-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold">{title}</h1>
+        <h1 className="font-display text-2xl font-semibold">{title}</h1>
         <Button
           onClick={openNew}
           size="icon"
@@ -230,12 +236,12 @@ function groupTasksByNextOccurrence(tasks: Task[], today: Date, locale: string):
     .sort((left, right) => left.key.localeCompare(right.key))
     .map((section) => ({
       ...section,
-      tasks: [...section.tasks].sort(sortTasks),
+      tasks: section.tasks.toSorted(sortTasks),
     }));
 
   return {
     upcomingSections,
-    unscheduledTasks: [...unscheduledTasks].sort(sortTasks),
+    unscheduledTasks: unscheduledTasks.toSorted(sortTasks),
   };
 }
 
@@ -253,7 +259,7 @@ function formatSectionLabel(date: Date, today: Date, locale: string): string {
     return `${locale === "es" ? "Mañana" : "Tomorrow"} - ${dateLabel}`;
   }
 
-  const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date);
+  const weekday = getWeekdayFormatter(locale).format(date);
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} - ${dateLabel}`;
 }
 
@@ -281,7 +287,7 @@ function TaskCard({
   const assignedKid = kids.find((k) => k.id === task.assigned_to);
 
   return (
-    <motion.div
+    <m.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -328,7 +334,7 @@ function TaskCard({
           </IconBtn>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -374,12 +380,12 @@ function IconBtn({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground"
     >
       <p className="text-base">{message}</p>
-    </motion.div>
+    </m.div>
   );
 }

@@ -11,9 +11,10 @@ interface ParentCalendarClientProps {
   tasks: Task[];
   completions: CompletionMeta[];
   kids: Pick<Profile, "id" | "display_name" | "emoji">[];
+  todayStr?: string;
 }
 
-export function ParentCalendarClient({ tasks, completions, kids }: ParentCalendarClientProps) {
+export function ParentCalendarClient({ tasks, completions, kids, todayStr }: ParentCalendarClientProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [initialStartDate, setInitialStartDate] = useState<string | undefined>();
 
@@ -30,6 +31,7 @@ export function ParentCalendarClient({ tasks, completions, kids }: ParentCalenda
         kids={kids}
         isParent
         onAddTaskForDate={handleAddTaskForDate}
+        todayStr={todayStr}
       />
       <TaskForm
         open={formOpen}
