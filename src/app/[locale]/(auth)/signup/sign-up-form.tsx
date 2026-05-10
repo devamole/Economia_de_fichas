@@ -3,9 +3,7 @@
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { signUpParent } from "@/server/actions/auth";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 type State = { error?: string } | null;
 
@@ -19,7 +17,9 @@ export function SignUpForm() {
   return (
     <form action={action} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="displayName">{t("displayName")}</Label>
+        <label htmlFor="displayName" className="block font-fredoka font-medium text-sm text-purple-900/80">
+          {t("displayName")}
+        </label>
         <Input
           id="displayName"
           name="displayName"
@@ -27,24 +27,28 @@ export function SignUpForm() {
           autoComplete="name"
           required
           placeholder="Ana García"
-          className="rounded-xl h-12"
+          className="rounded-2xl h-12 border-purple-100 focus-visible:ring-purple-400 bg-purple-50/30"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="familyName">{t("familyName")}</Label>
+        <label htmlFor="familyName" className="block font-fredoka font-medium text-sm text-purple-900/80">
+          {t("familyName")}
+        </label>
         <Input
           id="familyName"
           name="familyName"
           type="text"
           required
           placeholder="Familia García"
-          className="rounded-xl h-12"
+          className="rounded-2xl h-12 border-purple-100 focus-visible:ring-purple-400 bg-purple-50/30"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">{t("email")}</Label>
+        <label htmlFor="email" className="block font-fredoka font-medium text-sm text-purple-900/80">
+          {t("email")}
+        </label>
         <Input
           id="email"
           name="email"
@@ -52,12 +56,14 @@ export function SignUpForm() {
           autoComplete="email"
           required
           placeholder="ana@ejemplo.com"
-          className="rounded-xl h-12"
+          className="rounded-2xl h-12 border-purple-100 focus-visible:ring-purple-400 bg-purple-50/30"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">{t("password")}</Label>
+        <label htmlFor="password" className="block font-fredoka font-medium text-sm text-purple-900/80">
+          {t("password")}
+        </label>
         <Input
           id="password"
           name="password"
@@ -66,23 +72,35 @@ export function SignUpForm() {
           required
           minLength={8}
           placeholder="••••••••"
-          className="rounded-xl h-12"
+          className="rounded-2xl h-12 border-purple-100 focus-visible:ring-purple-400 bg-purple-50/30"
         />
+        <p className="text-xs text-purple-400/80 font-fredoka">Mínimo 8 caracteres</p>
       </div>
 
       {state?.error && (
-        <p className="text-sm text-destructive rounded-lg bg-destructive/10 px-4 py-2">
+        <p className="text-sm text-red-600 rounded-xl bg-red-50 px-4 py-2">
           {state.error}
         </p>
       )}
 
-      <Button
+      <button
         type="submit"
         disabled={pending}
-        className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] hover:opacity-90 transition-opacity"
+        className="w-full group transition-transform active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed pt-1"
       >
-        {pending ? "Creando cuenta…" : t("signUp")}
-      </Button>
+        <div className="p-0.5 rounded-full bg-gradient-to-r from-purple-400 to-indigo-400 shadow-lg shadow-purple-200/60">
+          <div className="rounded-full bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] px-6 py-3.5 flex items-center justify-center gap-2">
+            <span className="font-fredoka font-bold text-white text-base">
+              {pending ? "Creando tu familia… 🏠" : t("signUp")}
+            </span>
+            {!pending && (
+              <span className="text-sm bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-white group-hover:translate-x-0.5 transition-transform">
+                →
+              </span>
+            )}
+          </div>
+        </div>
+      </button>
     </form>
   );
 }
