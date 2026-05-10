@@ -10,9 +10,7 @@ export function useOnlineStatus(): boolean {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    // Sync with actual value after hydration — by this point the browser has
-    // had a chance to confirm network state, so this corrects any transient
-    // false-negative from the initial render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOnline(navigator.onLine);
 
     function handleOnline() {

@@ -1,12 +1,53 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+
+// Shared AudioContext across all hook instances — created once, resumed on first interaction
+let _ctx: AudioContext | null = null;
+const _buffers = new Map<string, AudioBuffer>();
+
+function getCtx(): AudioContext {
+  if (!_ctx || _ctx.state === "closed") {
+    _ctx = new AudioContext();
+  }
+  return _ctx;
+}
+
+// Decode an audio file and cache its buffer. Multiple simultaneous calls are safe.
+async function fetchBuffer(src: string): Promise<AudioBuffer | null> {
+  if (_buffers.has(src)) return _buffers.get(src)!;
+  try {
+    const ab = await fetch(src).then((r) => r.arrayBuffer());
+    const buf = await getCtx().decodeAudioData(ab);
+    _buffers.set(src, buf);
+    return buf;
+  } catch {
+    return null;
+  }
+}
 
 export function useWebAudio() {
-  // Synthetic soft click via Web Audio API — no audio file required
+  // Resume the shared context on the first user interaction so that sounds
+  // triggered after an async operation (server call) can play without restriction.
+  useEffect(() => {
+    const unlock = () => {
+      if (!_ctx) {
+        _ctx = new AudioContext();
+      } else if (_ctx.state === "suspended") {
+        _ctx.resume();
+      }
+    };
+    document.addEventListener("click", unlock, { once: true, capture: true });
+    document.addEventListener("touchstart", unlock, { once: true, capture: true });
+    return () => {
+      document.removeEventListener("click", unlock, { capture: true });
+      document.removeEventListener("touchstart", unlock, { capture: true });
+    };
+  }, []);
+
   const playClick = useCallback(() => {
     try {
-      const ctx = new AudioContext();
+      const ctx = getCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -19,10 +60,9 @@ export function useWebAudio() {
     } catch {}
   }, []);
 
-  // Rising buzz for epic anticipation phase (200Hz → 900Hz over 500ms)
   const playCrescendo = useCallback(() => {
     try {
-      const ctx = new AudioContext();
+      const ctx = getCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -37,10 +77,9 @@ export function useWebAudio() {
     } catch {}
   }, []);
 
-  // Two-ping coin sound for minor boost — no file required
   const playCoin = useCallback(() => {
     try {
-      const ctx = new AudioContext();
+      const ctx = getCtx();
       [880, 1100].forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -57,12 +96,20 @@ export function useWebAudio() {
     } catch {}
   }, []);
 
-  // File-based playback (swallows NotAllowedError silently)
-  const playSound = useCallback((src: string, volume = 1.0) => {
+  // Play an audio file via Web Audio decode pipeline (no autoplay restriction)
+  const playSound = useCallback(async (src: string, volume = 1.0) => {
     try {
-      const audio = new Audio(src);
-      audio.volume = volume;
-      audio.play().catch(() => {});
+      const audioCtx = getCtx();
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+      const buffer = await fetchBuffer(src);
+      if (!buffer) return;
+      const source = audioCtx.createBufferSource();
+      const gain = audioCtx.createGain();
+      gain.gain.value = volume;
+      source.buffer = buffer;
+      source.connect(gain);
+      gain.connect(audioCtx.destination);
+      source.start();
     } catch {}
   }, []);
 

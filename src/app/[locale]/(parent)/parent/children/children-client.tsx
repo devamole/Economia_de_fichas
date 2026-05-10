@@ -22,6 +22,7 @@ export function ChildrenClient({ initialChildren }: { initialChildren: Child[] }
   useEffect(() => {
     if (state && !("error" in state)) {
       toast.success("¡Hijo añadido! Ahora puede acceder con el código de familia.");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormOpen(false);
     } else if (state && "error" in state && state.error) {
       toast.error(state.error);

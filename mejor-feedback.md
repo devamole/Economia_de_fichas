@@ -1,9 +1,6 @@
 ```markdown
 # ESPECIFICACIÓN DE UX ADICTIVO (TIPO "OYEE") PARA APP DE TAREAS
 
-> Documento optimizado para agentes IA de planificación y desarrollo.  
-> Cada sección contiene etiquetas de disciplina y detalles de implementación para un resultado 100% satisfactorio.
-
 ---
 
 ## 1. FUNDAMENTOS CONDUCTUALES [`CONDUCTUAL`]

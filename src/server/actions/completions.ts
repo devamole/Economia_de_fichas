@@ -43,7 +43,7 @@ export async function completeTask(
         .eq("id", taskId)
         .single();
       if (task) {
-        notifyFamilyParents(
+        await notifyFamilyParents(
           profile.family_id,
           "task_completions",
           {

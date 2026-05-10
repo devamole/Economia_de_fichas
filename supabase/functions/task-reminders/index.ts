@@ -54,18 +54,23 @@ Deno.serve(async (req) => {
   let reminded = 0;
 
   for (const task of tasks as TaskRow[]) {
-    // Insert reminder_log — unique constraint (task_id, profile_id, sent_for_date)
-    // prevents duplicates. If it conflicts we skip sending.
-    const { count } = await supabase
+    // Upsert reminder_log with ignoreDuplicates — if the unique constraint
+    // (task_id, profile_id, sent_for_date) fires, count is 0 and we skip.
+    const { count, error: logError } = await supabase
       .from("reminder_log")
-      .insert({
-        task_id: task.task_id,
-        profile_id: task.profile_id,
-        sent_for_date: new Date().toISOString().slice(0, 10),
-      }, { count: "exact" })
-      .select();
+      .upsert(
+        {
+          task_id: task.task_id,
+          profile_id: task.profile_id,
+          sent_for_date: new Date().toISOString().slice(0, 10),
+        },
+        { onConflict: "task_id,profile_id,sent_for_date", ignoreDuplicates: true, count: "exact" },
+      );
 
-    // count is null on conflict (no row inserted)
+    if (logError) {
+      console.error("reminder_log upsert error:", logError.message);
+      continue;
+    }
     if (!count || count === 0) continue;
 
     const msg = getMessages(task.locale);

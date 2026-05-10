@@ -148,6 +148,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
     setStreak(r.new_streak);
     setCompletedCount((c) => c + 1);
 
+    // eslint-disable-next-line react-hooks/purity
     const showNearMiss = r.boost_type === "none" && Math.random() < 0.2;
 
     if (r.boost_type === "epic") {

@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { m, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useWebAudio } from "@/hooks/use-web-audio";
 
 type Phase = "anticipate" | "explode" | "exhibit" | "done";
+
+function phaseReducer(_: Phase, next: Phase): Phase {
+  return next;
+}
 
 const OYEE_LETTERS = [
   { id: "o0", letter: "O" },
@@ -24,76 +28,72 @@ interface Props {
 }
 
 export function OyeeCelebration({ points, basePoints, onComplete }: Props) {
-  const [phase, setPhase] = useState<Phase>("anticipate");
+  const [phase, dispatch] = useReducer(phaseReducer, "anticipate" as Phase);
   const { playCrescendo, playSound } = useWebAudio();
   const motionCount = useMotionValue(basePoints);
   const displayCount = useTransform(motionCount, (v) => Math.round(v));
-  const reducedMotion = useRef(
-    typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  ).current;
-  const doneRef = useRef(false);
+  const reducedMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
+  // Reduced-motion: show static screen for 2s then finish
   useEffect(() => {
-    if (doneRef.current) return;
+    if (!reducedMotion) return;
+    const t = setTimeout(() => onCompleteRef.current(), 2000);
+    return () => clearTimeout(t);
+  }, [reducedMotion]);
 
-    if (reducedMotion) {
-      const t = setTimeout(() => { onComplete(); doneRef.current = true; }, 2000);
-      return () => clearTimeout(t);
-    }
-
-    // Phase 1: anticipation (0–500ms)
+  // Phase 1 → Phase 2 (anticipate → explode) after 500ms
+  useEffect(() => {
+    if (reducedMotion || phase !== "anticipate") return;
     playCrescendo();
     navigator.vibrate?.([15]);
-
-    const t1 = setTimeout(() => {
-      setPhase("explode");
-
-      // Phase 2: explosion (500–2500ms)
-      playSound("/sounds/epic-boom.mp3", 0.8);
-      navigator.vibrate?.([50, 30, 50, 30, 100, 50, 100]);
-
-      confetti({
-        particleCount: 160,
-        spread: 80,
-        origin: { x: 0.5, y: 0.55 },
-        colors: ["#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#10b981"],
-        startVelocity: 45,
-        gravity: 1.1,
-        scalar: 1.1,
-      });
-      setTimeout(() =>
-        confetti({
-          particleCount: 80,
-          spread: 120,
-          origin: { x: 0.5, y: 0.5 },
-          colors: ["#fde68a", "#fff", "#a78bfa"],
-          startVelocity: 30,
-          gravity: 0.9,
-        }), 300,
-      );
-
-      const t2 = setTimeout(() => {
-        setPhase("exhibit");
-
-        // Animate counter from basePoints to points
-        animate(motionCount, points, { duration: 0.8, ease: "easeOut" });
-
-        const t3 = setTimeout(() => {
-          setPhase("done");
-          onComplete();
-          doneRef.current = true;
-        }, 1200);
-
-        return () => clearTimeout(t3);
-      }, 2000);
-
-      return () => clearTimeout(t2);
-    }, 500);
-
-    return () => clearTimeout(t1);
+    const t = setTimeout(() => dispatch("explode"), 500);
+    return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [phase, reducedMotion]);
+
+  // Phase 2 side-effects + transition → exhibit after 2000ms
+  useEffect(() => {
+    if (phase !== "explode") return;
+    playSound("/sounds/epic-boom.mp3", 0.8);
+    navigator.vibrate?.([50, 30, 50, 30, 100, 50, 100]);
+    confetti({
+      particleCount: 160,
+      spread: 80,
+      origin: { x: 0.5, y: 0.55 },
+      colors: ["#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#10b981"],
+      startVelocity: 45,
+      gravity: 1.1,
+      scalar: 1.1,
+    });
+    const sparkle = setTimeout(() =>
+      confetti({
+        particleCount: 80,
+        spread: 120,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ["#fde68a", "#fff", "#a78bfa"],
+        startVelocity: 30,
+        gravity: 0.9,
+      }), 300,
+    );
+    const t = setTimeout(() => dispatch("exhibit"), 2000);
+    return () => { clearTimeout(sparkle); clearTimeout(t); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // Phase 3: animate counter, then finish after 1200ms
+  useEffect(() => {
+    if (phase !== "exhibit") return;
+    animate(motionCount, points, { duration: 0.8, ease: "easeOut" });
+    const t = setTimeout(() => {
+      dispatch("done");
+      onCompleteRef.current();
+    }, 1200);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   if (reducedMotion) {
     return (

@@ -124,7 +124,7 @@ export async function redeemReward(rewardId: string): Promise<RedeemResult> {
       supabase.from("rewards").select("name").eq("id", rewardId).single(),
     ]);
     if (profile && reward) {
-      notifyFamilyParents(profile.family_id, "reward_redemptions", {
+      await notifyFamilyParents(profile.family_id, "reward_redemptions", {
         title: "Recompensa solicitada 🎁",
         body: `${profile.display_name} quiere canjear "${reward.name}"`,
         url: "/parent/approvals",
@@ -264,7 +264,7 @@ export async function redeemMoneyExchange(pointsToRedeem: number): Promise<Money
       .eq("id", user.id)
       .single();
     if (profile) {
-      notifyFamilyParents(profile.family_id, "reward_redemptions", {
+      await notifyFamilyParents(profile.family_id, "reward_redemptions", {
         title: "Canje por dinero solicitado 💰",
         body: `${profile.display_name} quiere canjear puntos por dinero`,
         url: "/parent/approvals",

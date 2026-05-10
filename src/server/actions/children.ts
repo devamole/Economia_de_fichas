@@ -26,7 +26,6 @@ export async function signInChild(
   _prev: unknown,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const familyCode = (formData.get("familyCode") as string) ?? "";
   const profileId = (formData.get("profileId") as string) ?? "";
   const pin = (formData.get("pin") as string) ?? "";
 

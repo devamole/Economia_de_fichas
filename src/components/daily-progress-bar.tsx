@@ -18,16 +18,16 @@ export function DailyProgressBar({ completed, total }: Props) {
 
   useEffect(() => {
     const prev = prevPctRef.current;
-    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
-    MILESTONES.forEach((m) => {
-      if (prev < m && pct >= m) {
-        const id = ++sparkIdRef.current;
-        setSparks((s) => [...s, { id, pct: m }]);
-        timeoutIds.push(setTimeout(() => setSparks((s) => s.filter((x) => x.id !== id)), 900));
-      }
-    });
     prevPctRef.current = pct;
-    return () => { for (const id of timeoutIds) clearTimeout(id); };
+    const crossed = MILESTONES.filter((m) => prev < m && pct >= m);
+    if (crossed.length === 0) return;
+
+    const newSparks = crossed.map((m) => ({ id: ++sparkIdRef.current, pct: m }));
+    setSparks((s) => [...s, ...newSparks]);
+    const ids = newSparks.map((spark) =>
+      setTimeout(() => setSparks((s) => s.filter((x) => x.id !== spark.id)), 900),
+    );
+    return () => { for (const id of ids) clearTimeout(id); };
   }, [pct]);
 
   if (total === 0) return null;

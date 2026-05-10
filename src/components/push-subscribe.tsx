@@ -18,16 +18,15 @@ function urlBase64ToUint8Array(base64String: string) {
 export function PushSubscribeButton() {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [supported, setSupported] = useState(false);
+  const supported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
 
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setSupported(true);
+    if (supported) {
       navigator.serviceWorker.ready.then((reg) => {
         reg.pushManager.getSubscription().then((sub) => setSubscribed(!!sub));
       });
     }
-  }, []);
+  }, [supported]);
 
   if (!supported) return null;
 

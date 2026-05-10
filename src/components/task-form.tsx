@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -56,15 +55,19 @@ export function TaskForm({ open, onOpenChange, task, kids, onSuccess, initialSta
   const action = isEdit ? updateTask : createTask;
   const [state, formAction, pending] = useActionState<State, FormData>(action, null);
   const formRef = useRef<HTMLFormElement>(null);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
 
-  // Close sheet on success
+  // Close sheet on success — read stable refs so stale callbacks never re-fire
   useEffect(() => {
     if (state !== null && !state?.error) {
-      onOpenChange(false);
-      onSuccess?.();
+      onOpenChangeRef.current(false);
+      onSuccessRef.current?.();
       formRef.current?.reset();
     }
-  }, [state, onOpenChange, onSuccess]);
+  }, [state]);
 
   const defaultRecurrence = task?.recurrence_type ?? "daily";
   const defaultDays: number[] = (task?.recurrence_days as number[] | null) ?? [];

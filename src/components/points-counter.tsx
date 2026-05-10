@@ -13,20 +13,14 @@ export function PointsCounter({ points }: Props) {
   const prevRef = useRef(points);
 
   useEffect(() => {
-    if (points !== prevRef.current) {
-      const diff = points - prevRef.current;
-      if (diff > 0) {
-        setDelta(diff);
-        setDeltaKey((k) => k + 1);
-        const t = setTimeout(() => setDelta(null), 1000);
-        return () => clearTimeout(t);
-      }
-      prevRef.current = points;
-    }
-  }, [points]);
-
-  useEffect(() => {
+    const diff = points - prevRef.current;
     prevRef.current = points;
+    if (diff > 0) {
+      setDelta(diff);
+      setDeltaKey((k) => k + 1);
+      const t = setTimeout(() => setDelta(null), 1000);
+      return () => clearTimeout(t);
+    }
   }, [points]);
 
   return (

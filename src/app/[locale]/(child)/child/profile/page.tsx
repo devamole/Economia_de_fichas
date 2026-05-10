@@ -4,6 +4,7 @@ import { signOut } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { LevelProgressBar } from "@/components/level-progress-bar";
 import { BADGE_DEFINITIONS } from "@/lib/achievements";
+import { PushSubscribeButton } from "@/components/push-subscribe";
 import type { BadgeKey } from "@/types";
 
 export default async function ChildProfilePage() {
@@ -80,6 +81,8 @@ export default async function ChildProfilePage() {
           <p className="font-display text-xl font-bold tracking-widest text-primary">{family.family_code}</p>
         </div>
       )}
+
+      <PushSubscribeButton />
 
       <form action={signOut} className="w-full mt-auto">
         <Button type="submit" variant="outline" className="w-full rounded-xl h-12">
