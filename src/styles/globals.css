@@ -227,6 +227,18 @@
   100% { transform: scale(1) rotate(0deg);    opacity: 1; }
 }
 
+@keyframes reward-glow {
+  0%, 100% { box-shadow: 0 4px 20px -4px var(--glow-color, rgba(245,158,11,0.4)); }
+  50%       { box-shadow: 0 4px 32px 0px var(--glow-color, rgba(245,158,11,0.65)); }
+}
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+.animate-reward-glow { animation: reward-glow 2.5s ease-in-out infinite; }
+.animate-bounce-soft { animation: bounce-soft 2s ease-in-out infinite; }
+
 .animate-blob-a { animation: blob-float-a 9s ease-in-out infinite; }
 .animate-blob-b { animation: blob-float-b 13s ease-in-out infinite; }
 .animate-blob-c { animation: blob-float-c 11s ease-in-out infinite; }
