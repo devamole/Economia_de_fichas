@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useOptimistic, useRef, useMemo } from "react";
+import { useState, useOptimistic, useRef, useMemo, startTransition } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, Clock, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -109,70 +109,72 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
     });
   }
 
-  async function handleComplete(task: Task) {
+  function handleComplete(task: Task) {
     if (optimisticCompleted.has(task.id)) return;
-    addOptimistic(task.id);
 
-    if (!navigator.onLine) {
-      await enqueue("completeTask", { taskId: task.id, completionDate: todayStr });
-      // Write to Dexie so the pending badge persists across reloads
-      await db.task_completions.put({
-        id: `offline-${task.id}-${todayStr}`,
-        task_id: task.id,
-        completed_by: profile.id,
-        completion_date: todayStr,
-        created_at: new Date().toISOString(),
-        status: "pending",
-        points_awarded: task.points,
-        boost_type: null,
-        note: null,
-        reviewed_at: null,
-        reviewed_by: null,
-        pending_sync: true,
-      });
-      celebrate();
-      toast("Sin conexión — se sincronizará cuando vuelvas online 📡");
+    startTransition(async () => {
+      addOptimistic(task.id);
+
+      if (!navigator.onLine) {
+        await enqueue("completeTask", { taskId: task.id, completionDate: todayStr });
+        // Write to Dexie so the pending badge persists across reloads
+        await db.task_completions.put({
+          id: `offline-${task.id}-${todayStr}`,
+          task_id: task.id,
+          completed_by: profile.id,
+          completion_date: todayStr,
+          created_at: new Date().toISOString(),
+          status: "pending",
+          points_awarded: task.points,
+          boost_type: null,
+          note: null,
+          reviewed_at: null,
+          reviewed_by: null,
+          pending_sync: true,
+        });
+        celebrate();
+        toast("Sin conexión — se sincronizará cuando vuelvas online 📡");
+        setCompletedCount((c) => c + 1);
+        return;
+      }
+
+      const result = await completeTask(task.id, todayStr);
+
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+
+      const r = result as CompletionResultSuccess;
+      setPoints((p) => p + r.points_awarded);
+      setStreak(r.new_streak);
       setCompletedCount((c) => c + 1);
-      return;
-    }
 
-    const result = await completeTask(task.id, todayStr);
+      const showNearMiss = r.boost_type === "none" && Math.random() < 0.2;
 
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
-    }
+      if (r.boost_type === "epic") {
+        setOyeeEvent({ points: r.points_awarded, basePoints: r.base_points });
+      } else if (r.boost_type === "minor") {
+        triggerMinorBoost(r.points_awarded);
+      } else {
+        triggerBaseCompletion(showNearMiss, task.id);
+        const isPending = r.status === "pending";
+        toast.success(
+          isPending ? `+${r.points_awarded} puntos ⏳` : `+${r.points_awarded} puntos 🔥`,
+          {
+            description: isPending ? "Pendiente de aprobación del adulto" : undefined,
+            duration: 3000,
+            style: { background: "#7c3aed", color: "#fff", fontWeight: 700 },
+          },
+        );
+      }
 
-    const r = result as CompletionResultSuccess;
-    setPoints((p) => p + r.points_awarded);
-    setStreak(r.new_streak);
-    setCompletedCount((c) => c + 1);
+      r.new_achievements?.forEach((key) => showAchievementToast(key));
 
-    // eslint-disable-next-line react-hooks/purity
-    const showNearMiss = r.boost_type === "none" && Math.random() < 0.2;
-
-    if (r.boost_type === "epic") {
-      setOyeeEvent({ points: r.points_awarded, basePoints: r.base_points });
-    } else if (r.boost_type === "minor") {
-      triggerMinorBoost(r.points_awarded);
-    } else {
-      triggerBaseCompletion(showNearMiss, task.id);
-      const isPending = r.status === "pending";
-      toast.success(
-        isPending ? `+${r.points_awarded} puntos ⏳` : `+${r.points_awarded} puntos 🔥`,
-        {
-          description: isPending ? "Pendiente de aprobación del adulto" : undefined,
-          duration: 3000,
-          style: { background: "#7c3aed", color: "#fff", fontWeight: 700 },
-        },
-      );
-    }
-
-    r.new_achievements?.forEach((key) => showAchievementToast(key));
-
-    if (r.shield_activated) {
-      toast("🛡️ ¡Escudo activado automáticamente! Tu racha continúa.", { duration: 3500 });
-    }
+      if (r.shield_activated) {
+        toast("🛡️ ¡Escudo activado automáticamente! Tu racha continúa.", { duration: 3500 });
+      }
+    });
   }
 
   const groups = ["morning", "afternoon", "night", "anytime"] as const;
