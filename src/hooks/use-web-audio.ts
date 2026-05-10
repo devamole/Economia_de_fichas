@@ -113,5 +113,44 @@ export function useWebAudio() {
     } catch {}
   }, []);
 
-  return { playClick, playCrescendo, playCoin, playSound };
+  const playCompletion = useCallback(() => {
+    try {
+      const ctx = getCtx();
+
+      // Impact thud — low-freq drop for physical "check" feel
+      const thud = ctx.createOscillator();
+      const thudGain = ctx.createGain();
+      thud.type = "sine";
+      thud.connect(thudGain);
+      thudGain.connect(ctx.destination);
+      thud.frequency.setValueAtTime(260, ctx.currentTime);
+      thud.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.06);
+      thudGain.gain.setValueAtTime(0.22, ctx.currentTime);
+      thudGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      thud.start(ctx.currentTime);
+      thud.stop(ctx.currentTime + 0.12);
+
+      // Ascending C5→E5→G5 arpeggio for dopamine hit
+      [
+        { freq: 523.25, t: 0.05, dur: 0.22, vol: 0.12 },
+        { freq: 659.25, t: 0.13, dur: 0.26, vol: 0.13 },
+        { freq: 783.99, t: 0.21, dur: 0.42, vol: 0.11 },
+      ].forEach(({ freq, t, dur, vol }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        const at = ctx.currentTime + t;
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.linearRampToValueAtTime(vol, at + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, at + dur);
+        osc.start(at);
+        osc.stop(at + dur + 0.01);
+      });
+    } catch {}
+  }, []);
+
+  return { playClick, playCrescendo, playCoin, playSound, playCompletion };
 }

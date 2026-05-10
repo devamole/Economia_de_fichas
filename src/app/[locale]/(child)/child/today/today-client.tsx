@@ -14,6 +14,7 @@ import { StreakBadge } from "@/components/streak-badge";
 import { DailyProgressBar } from "@/components/daily-progress-bar";
 import { PointsCounter } from "@/components/points-counter";
 import { OyeeCelebration } from "@/components/oyee-celebration";
+import { TaskCompletionCelebration } from "@/components/task-completion-celebration";
 import { showAchievementToast } from "@/components/achievement-toast";
 import { useWebAudio } from "@/hooks/use-web-audio";
 import type { Task, TaskCompletion, Profile, CompletionResultSuccess } from "@/types";
@@ -116,6 +117,11 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
   const [streak, setStreak] = useState(profile.current_streak ?? 0);
   const [completedCount, setCompletedCount] = useState(initialCompleted.size);
   const [oyeeEvent, setOyeeEvent] = useState<{ points: number; basePoints: number } | null>(null);
+  const [completionEvent, setCompletionEvent] = useState<{
+    points: number;
+    taskTitle: string;
+    isPending: boolean;
+  } | null>(null);
   const [nearMissTaskId, setNearMissTaskId] = useState<string | null>(null);
   const [minorBoostKey, setMinorBoostKey] = useState(0);
   const [showMinorFlash, setShowMinorFlash] = useState(false);
@@ -123,8 +129,14 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
   const shieldAvailable = isShieldAvailable(profile.streak_shield_used_at, todayStr);
 
-  function triggerBaseCompletion(showNearMiss: boolean, taskId: string) {
-    celebrate();
+  function triggerBaseCompletion(
+    showNearMiss: boolean,
+    taskId: string,
+    points: number,
+    taskTitle: string,
+    isPending: boolean,
+  ) {
+    setCompletionEvent({ points, taskTitle, isPending });
     if (showNearMiss) {
       if (nearMissTimer.current) clearTimeout(nearMissTimer.current);
       setNearMissTaskId(taskId);
@@ -198,15 +210,12 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
       } else if (r.boost_type === "minor") {
         triggerMinorBoost(r.points_awarded);
       } else {
-        triggerBaseCompletion(showNearMiss, task.id);
-        const isPending = r.status === "pending";
-        toast.success(
-          isPending ? `+${r.points_awarded} puntos ⏳` : `+${r.points_awarded} puntos 🔥`,
-          {
-            description: isPending ? "Pendiente de aprobación del adulto" : undefined,
-            duration: 3000,
-            style: { background: "#f59e0b", color: "#fff", fontWeight: 700 },
-          },
+        triggerBaseCompletion(
+          showNearMiss,
+          task.id,
+          r.points_awarded,
+          task.title,
+          r.status === "pending",
         );
       }
 
@@ -259,6 +268,19 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
           onComplete={() => setOyeeEvent(null)}
         />
       )}
+
+      {/* Base completion celebration overlay */}
+      <AnimatePresence>
+        {completionEvent && (
+          <TaskCompletionCelebration
+            key="base-completion"
+            points={completionEvent.points}
+            taskTitle={completionEvent.taskTitle}
+            isPending={completionEvent.isPending}
+            onComplete={() => setCompletionEvent(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Hero header */}
       <div className="relative z-10 px-5 pt-8 pb-4">
