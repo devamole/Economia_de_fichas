@@ -36,14 +36,18 @@ interface ChildRewardsClientProps {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CARD_COLORS = [
+const CARD_COLORS: { accent: string; bg: string }[] = [
   { accent: "#F59E0B", bg: "#FFF9E6" },
   { accent: "#EC4899", bg: "#FDF2F8" },
   { accent: "#0EA5E9", bg: "#E0F2FE" },
   { accent: "#A855F7", bg: "#F3E8FF" },
   { accent: "#10B981", bg: "#ECFDF5" },
   { accent: "#F97316", bg: "#FFF0E8" },
-] as const;
+];
+
+function getCardColor(i: number): { accent: string; bg: string } {
+  return CARD_COLORS[i % CARD_COLORS.length] ?? CARD_COLORS[0] ?? { accent: "#F59E0B", bg: "#FFF9E6" };
+}
 
 const STATUS_CONFIG = {
   pending:   { label: "Pendiente", accent: "#F59E0B", bg: "#FFF9E6", emoji: "⏳" },
@@ -150,8 +154,8 @@ export function ChildRewardsClient({
       : null;
 
   const confirmingColors = confirming
-    ? CARD_COLORS[confirming.idx % CARD_COLORS.length]
-    : CARD_COLORS[0];
+    ? getCardColor(confirming.idx)
+    : getCardColor(0);
 
   return (
     <main className="child-page flex flex-col flex-1 gap-0 pb-4 overflow-hidden">
@@ -277,7 +281,7 @@ export function ChildRewardsClient({
                 <RewardCard
                   key={reward.id}
                   reward={reward}
-                  colors={CARD_COLORS[i % CARD_COLORS.length]}
+                  colors={getCardColor(i)}
                   affordable={canAfford(reward.cost_points)}
                   onClaim={() => setConfirming({ reward, idx: i })}
                 />
