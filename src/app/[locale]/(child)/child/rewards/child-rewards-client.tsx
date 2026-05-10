@@ -29,6 +29,7 @@ interface ChildRewardsClientProps {
   rewards: Reward[];
   redemptions: RedemptionRow[];
   pointsBalance: number;
+  pendingPoints: number;
   moneyExchangeConfig: MoneyExchangeConfig | null;
 }
 
@@ -44,7 +45,7 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "Rechazada",
 };
 
-export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyExchangeConfig }: ChildRewardsClientProps) {
+export function ChildRewardsClient({ rewards, redemptions, pointsBalance, pendingPoints, moneyExchangeConfig }: ChildRewardsClientProps) {
   const [balance, setBalance] = useState(pointsBalance);
   const [confirming, setConfirming] = useState<Reward | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,9 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
   const [confirmingMoney, setConfirmingMoney] = useState(false);
   const [moneyPoints, setMoneyPoints] = useState("");
   const [loadingMoney, setLoadingMoney] = useState(false);
+
+  // Points available for redemption (excludes pending task approvals)
+  const availableBalance = Math.max(0, balance - pendingPoints);
 
   async function handleRedeem(reward: Reward) {
     setLoading(true);
@@ -89,7 +93,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
     }
   }
 
-  const canAfford = (cost: number) => balance >= cost;
+  const canAfford = (cost: number) => availableBalance >= cost;
 
   const moneyPtsNum = parseInt(moneyPoints, 10);
   const moneyPreview =
@@ -99,6 +103,21 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
 
   return (
     <div className="space-y-6">
+      {/* Pending points banner */}
+      {pendingPoints > 0 && (
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 flex items-start gap-3">
+          <span className="text-xl shrink-0 leading-none mt-0.5">⏳</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              ¡Tienes {pendingPoints} pts en camino!
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+              Cuando papá o mamá apruebe tus tareas, esos puntos también estarán disponibles para canjear. ¡Ya casi son tuyos! ✨
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Money exchange card */}
       {moneyExchangeConfig && (
         <m.button
@@ -227,7 +246,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
                   id="money-points"
                   type="number"
                   min={1}
-                  max={balance}
+                  max={availableBalance}
                   value={moneyPoints}
                   onChange={(e) => setMoneyPoints(e.target.value)}
                   placeholder="Ej: 50"
@@ -242,13 +261,13 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
                     {moneyPreview} {moneyExchangeConfig.currency}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Te quedarán <strong>{balance - moneyPtsNum} pts</strong>
+                    Te quedarán <strong>{availableBalance - moneyPtsNum} pts disponibles</strong>
                   </p>
                 </div>
               )}
 
-              {moneyPtsNum > balance && (
-                <p className="text-sm text-destructive">No tienes suficientes puntos.</p>
+              {moneyPtsNum > availableBalance && (
+                <p className="text-sm text-destructive">No tienes suficientes puntos disponibles.</p>
               )}
 
               <div className="flex gap-3">
@@ -266,7 +285,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
                     !moneyPreview ||
                     isNaN(moneyPtsNum) ||
                     moneyPtsNum < 1 ||
-                    moneyPtsNum > balance
+                    moneyPtsNum > availableBalance
                   }
                   onClick={handleRedeemMoney}
                 >
@@ -305,7 +324,7 @@ export function ChildRewardsClient({ rewards, redemptions, pointsBalance, moneyE
               )}
               <p className="text-3xl font-bold text-primary">{confirming.cost_points} pts</p>
               <p className="text-sm text-muted-foreground">
-                Te quedarán <strong>{balance - confirming.cost_points} pts</strong>
+                Te quedarán <strong>{availableBalance - confirming.cost_points} pts disponibles</strong>
               </p>
               <div className="flex gap-3">
                 <Button

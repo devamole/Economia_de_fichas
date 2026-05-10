@@ -25,7 +25,7 @@ export function DailyProgressBar({ completed, total }: Props) {
     const newSparks = crossed.map((m) => ({ id: ++sparkIdRef.current, pct: m }));
     setSparks((s) => [...s, ...newSparks]);
     const ids = newSparks.map((spark) =>
-      setTimeout(() => setSparks((s) => s.filter((x) => x.id !== spark.id)), 900),
+      setTimeout(() => setSparks((s) => s.filter((x) => x.id !== spark.id)), 1000),
     );
     return () => { for (const id of ids) clearTimeout(id); };
   }, [pct]);
@@ -36,20 +36,31 @@ export function DailyProgressBar({ completed, total }: Props) {
   const isDone = pct >= 100;
 
   return (
-    <div className="px-5 pb-4">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-semibold text-muted-foreground">
-          {isDone ? "¡Todo listo por hoy! 🎉" : isPulsing ? "¡Te falta poquito! 💪" : `Hoy: ${completed}/${total} tareas`}
+    <div className="px-5 pb-5">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-fredoka text-base font-semibold text-amber-700/80">
+          {isDone
+            ? "🎉 ¡Todo completado!"
+            : isPulsing
+            ? "💪 ¡Casi lo logras!"
+            : `${completed} de ${total} misiones`}
         </span>
-        <span className="text-xs font-bold text-primary">{pct}%</span>
+        <span className="font-fredoka text-sm font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+          {pct}%
+        </span>
       </div>
 
-      <div className="relative h-2.5 rounded-full bg-muted overflow-visible">
+      <div className="relative h-5 rounded-full bg-amber-100/80 overflow-visible shadow-inner">
         <m.div
-          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 origin-left"
+          className="h-full rounded-full origin-left"
+          style={{
+            background: isDone
+              ? "linear-gradient(90deg, #34d399 0%, #10b981 100%)"
+              : "linear-gradient(90deg, #fdd835 0%, #fb923c 45%, #a855f7 100%)",
+          }}
           animate={{
             width: `${pct}%`,
-            opacity: isPulsing ? [1, 0.65, 1] : 1,
+            opacity: isPulsing ? [1, 0.72, 1] : 1,
           }}
           transition={{
             width: { type: "spring", stiffness: 120, damping: 20 },
@@ -64,12 +75,12 @@ export function DailyProgressBar({ completed, total }: Props) {
           {sparks.map((spark) => (
             <m.span
               key={spark.id}
-              className="absolute top-1/2 -translate-y-1/2 text-yellow-400 text-xs pointer-events-none select-none"
+              className="absolute top-1/2 -translate-y-1/2 text-xl pointer-events-none select-none"
               style={{ left: `${spark.pct}%` }}
-              initial={{ opacity: 1, y: -8, scale: 0.8 }}
-              animate={{ opacity: 0, y: -24, scale: 1.4 }}
+              initial={{ opacity: 1, y: -14, scale: 0.5 }}
+              animate={{ opacity: 0, y: -44, scale: 2 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
             >
               ✨
             </m.span>

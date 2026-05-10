@@ -44,6 +44,17 @@
   /* Fonts */
   --font-display: var(--font-space-grotesk);
   --font-sans: var(--font-inter);
+
+  /* Child quest theme */
+  --child-bg: #fffbf5;
+  --quest-morning: #f59e0b;
+  --quest-morning-bg: #fff9e6;
+  --quest-afternoon: #0ea5e9;
+  --quest-afternoon-bg: #e0f2fe;
+  --quest-night: #a855f7;
+  --quest-night-bg: #f3e8ff;
+  --quest-anytime: #f97316;
+  --quest-anytime-bg: #fff0e8;
 }
 
 /* ─── Dark mode ─── */
@@ -108,7 +119,18 @@
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-fredoka: var(--font-fredoka), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
+
+  /* Child quest colors as Tailwind utilities */
+  --color-quest-morning: var(--quest-morning);
+  --color-quest-morning-bg: var(--quest-morning-bg);
+  --color-quest-afternoon: var(--quest-afternoon);
+  --color-quest-afternoon-bg: var(--quest-afternoon-bg);
+  --color-quest-night: var(--quest-night);
+  --color-quest-night-bg: var(--quest-night-bg);
+  --color-quest-anytime: var(--quest-anytime);
+  --color-quest-anytime-bg: var(--quest-anytime-bg);
 }
 
 /* ─── Base styles ─── */
@@ -145,4 +167,52 @@
   .emoji {
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   }
+
+  /* Fredoka utility */
+  .font-fredoka {
+    font-family: var(--font-fredoka), ui-sans-serif, system-ui, sans-serif;
+  }
 }
+
+/* ─── Child quest page ─── */
+.child-page {
+  background-color: var(--child-bg);
+  position: relative;
+  min-height: 100%;
+}
+
+/* ─── Child quest keyframes ─── */
+@keyframes blob-float-a {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-22px) scale(1.04); }
+}
+@keyframes blob-float-b {
+  0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+  33% { transform: translateY(-14px) scale(1.06) rotate(3deg); }
+  66% { transform: translateY(10px) scale(0.97) rotate(-2deg); }
+}
+@keyframes blob-float-c {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(18px) translateX(-12px); }
+}
+@keyframes blob-float-d {
+  0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+  40% { transform: translateY(-10px) rotate(-4deg) scale(1.05); }
+  80% { transform: translateY(8px) rotate(2deg) scale(0.96); }
+}
+@keyframes stamp-in {
+  0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes flame-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22) translateY(-1px); }
+}
+
+.animate-blob-a { animation: blob-float-a 9s ease-in-out infinite; }
+.animate-blob-b { animation: blob-float-b 13s ease-in-out infinite; }
+.animate-blob-c { animation: blob-float-c 11s ease-in-out infinite; }
+.animate-blob-d { animation: blob-float-d 7s ease-in-out infinite; }
+.animate-stamp { animation: stamp-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.animate-flame { animation: flame-pulse 1.6s ease-in-out infinite; }
