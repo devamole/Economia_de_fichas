@@ -19,13 +19,22 @@ export default async function ChildProfilePage() {
     .single();
   if (!profile) redirect("/login");
 
-  const { data: rawAchievements } = await supabase
-    .from("user_achievements")
-    .select("badge_key")
-    .eq("profile_id", user.id);
+  const [{ data: rawAchievements }, { data: pendingCompletions }] = await Promise.all([
+    supabase
+      .from("user_achievements")
+      .select("badge_key")
+      .eq("profile_id", user.id),
+    supabase
+      .from("task_completions")
+      .select("points_awarded")
+      .eq("completed_by", user.id)
+      .eq("status", "pending"),
+  ]);
 
   const unlockedKeys = new Set((rawAchievements ?? []).map((a) => a.badge_key));
   const totalPoints = (profile as { total_points_earned?: number }).total_points_earned ?? 0;
+  const pendingPoints = (pendingCompletions ?? []).reduce((sum, r) => sum + (r.points_awarded ?? 0), 0);
+  const availablePoints = Math.max(0, profile.points_balance - pendingPoints);
 
   const family = Array.isArray(profile.families) ? profile.families[0] : profile.families;
 
@@ -34,10 +43,25 @@ export default async function ChildProfilePage() {
       <div className="flex flex-col items-center gap-3 pt-8">
         <span className="text-8xl">{profile.emoji ?? "🧒"}</span>
         <h1 className="font-display text-2xl font-semibold">{profile.display_name}</h1>
+
         <div className="flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2">
-          <span className="text-2xl font-bold text-primary">{profile.points_balance}</span>
-          <span className="text-sm text-muted-foreground">puntos</span>
+          <span className="text-2xl font-bold text-primary">{availablePoints}</span>
+          <span className="text-sm text-muted-foreground">pts disponibles</span>
         </div>
+
+        {pendingPoints > 0 && (
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex items-center gap-2 bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-full px-3 py-1">
+              <span className="text-base leading-none">⏳</span>
+              <span className="text-sm font-bold text-amber-700 dark:text-amber-300">
+                +{pendingPoints} pts en camino
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-[220px]">
+              ¡Ya casi son tuyos! En cuanto papá o mamá apruebe tus tareas, los tendrás listos para canjear ✨
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Level progress bar */}

@@ -2,7 +2,7 @@
 
 import { useState, useOptimistic, useRef, useMemo, startTransition } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, Clock, RefreshCw } from "lucide-react";
+import { Clock, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { completeTask } from "@/server/actions/completions";
@@ -18,7 +18,6 @@ import { showAchievementToast } from "@/components/achievement-toast";
 import { useWebAudio } from "@/hooks/use-web-audio";
 import type { Task, TaskCompletion, Profile, CompletionResultSuccess } from "@/types";
 
-// Fields added by migration 0007 (optional until db:types is re-run)
 type ProfileWithEngagement = Profile & {
   current_streak?: number | null;
   streak_shield_used_at?: string | null;
@@ -45,8 +44,24 @@ const GROUP_LABELS = {
   morning: "Mañana",
   afternoon: "Tarde",
   night: "Noche",
-  anytime: "En cualquier momento",
+  anytime: "Cuando quieras",
 } as const;
+
+const GROUP_EMOJI = {
+  morning: "☀️",
+  afternoon: "🌤️",
+  night: "🌙",
+  anytime: "⚡",
+} as const;
+
+const GROUP_COLORS = {
+  morning:   { accent: "#F59E0B", bg: "#FFF9E6" },
+  afternoon: { accent: "#0EA5E9", bg: "#E0F2FE" },
+  night:     { accent: "#A855F7", bg: "#F3E8FF" },
+  anytime:   { accent: "#F97316", bg: "#FFF0E8" },
+} as const;
+
+type Group = keyof typeof GROUP_LABELS;
 
 function isShieldAvailable(shieldUsedAt: string | null | undefined, todayStr: string): boolean {
   if (!shieldUsedAt) return true;
@@ -61,11 +76,9 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
   const celebrate = useCelebrate();
   const { playCoin } = useWebAudio();
 
-  // Offline tasks from Dexie — gives us pendingCompletedIds across reloads
   const todayDate = useMemo(() => new Date(todayStr + "T00:00:00"), [todayStr]);
   const { pendingCompletedIds } = useOfflineTasks(todayDate, todayStr);
 
-  // Merge server-confirmed and locally-pending completions
   const mergedInitial = useMemo(
     () => new Set([...initialCompleted, ...pendingCompletedIds]),
     [initialCompleted, pendingCompletedIds],
@@ -117,7 +130,6 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
       if (!navigator.onLine) {
         await enqueue("completeTask", { taskId: task.id, completionDate: todayStr });
-        // Write to Dexie so the pending badge persists across reloads
         await db.task_completions.put({
           id: `offline-${task.id}-${todayStr}`,
           task_id: task.id,
@@ -138,7 +150,13 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
         return;
       }
 
-      const result = await completeTask(task.id, todayStr);
+      let result: Awaited<ReturnType<typeof completeTask>>;
+      try {
+        result = await completeTask(task.id, todayStr);
+      } catch {
+        toast.error("No se pudo conectar. Inténtalo de nuevo.");
+        return;
+      }
 
       if ("error" in result) {
         toast.error(result.error);
@@ -164,7 +182,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
           {
             description: isPending ? "Pendiente de aprobación del adulto" : undefined,
             duration: 3000,
-            style: { background: "#7c3aed", color: "#fff", fontWeight: 700 },
+            style: { background: "#f59e0b", color: "#fff", fontWeight: 700 },
           },
         );
       }
@@ -180,13 +198,21 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
   const groups = ["morning", "afternoon", "night", "anytime"] as const;
   const grouped = Object.fromEntries(
     groups.map((g) => [g, tasks.filter((t) => timeGroup(t.due_time) === g)]),
-  ) as Record<(typeof groups)[number], Task[]>;
+  ) as Record<Group, Task[]>;
 
   const pending = tasks.filter((t) => !optimisticCompleted.has(t.id));
   const completed = tasks.filter((t) => optimisticCompleted.has(t.id));
 
   return (
-    <main className="flex flex-col flex-1 gap-0 pb-4">
+    <main className="child-page flex flex-col flex-1 gap-0 pb-4 overflow-hidden">
+      {/* Background blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div className="animate-blob-a absolute -top-20 -left-20 size-64 rounded-full bg-amber-300/25 blur-3xl" />
+        <div className="animate-blob-b absolute top-32 -right-16 size-56 rounded-full bg-sky-300/20 blur-3xl" />
+        <div className="animate-blob-c absolute bottom-60 -left-10 size-48 rounded-full bg-violet-300/20 blur-3xl" />
+        <div className="animate-blob-d absolute -bottom-10 right-10 size-52 rounded-full bg-lime-300/20 blur-3xl" />
+      </div>
+
       {/* Minor boost silver flash */}
       <AnimatePresence>
         {showMinorFlash && (
@@ -212,10 +238,12 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
       )}
 
       {/* Hero header */}
-      <div className="px-5 pt-8 pb-3 bg-gradient-to-b from-[#7c3aed]/10 to-transparent">
-        <div className="flex items-start justify-between gap-2">
+      <div className="relative z-10 px-5 pt-8 pb-4">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-muted-foreground text-sm">{t("greeting", { name: profile.display_name })}</p>
+            <p className="font-fredoka text-base font-medium text-amber-700/80">
+              {t("greeting", { name: profile.display_name })}
+            </p>
             <div className="mt-1">
               <PointsCounter points={points} />
             </div>
@@ -230,42 +258,54 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
         </div>
 
         {tasks.length > 0 && (
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="font-fredoka text-sm font-medium text-amber-600/70 mt-2">
             {pending.length === 0
-              ? "¡Todo listo por hoy! 🎉"
-              : `${pending.length} ${pending.length === 1 ? "tarea pendiente" : "tareas pendientes"}`}
+              ? "¡Todas las misiones completadas! 🎉"
+              : `${pending.length} ${pending.length === 1 ? "misión pendiente" : "misiones pendientes"} 🗺️`}
           </p>
         )}
       </div>
 
       {/* Daily progress bar */}
-      <DailyProgressBar completed={completedCount} total={tasks.length} />
+      <div className="relative z-10">
+        <DailyProgressBar completed={completedCount} total={tasks.length} />
+      </div>
 
-      <div className="flex-1 px-4 space-y-6">
+      <div className="relative z-10 flex-1 px-4 space-y-6 pb-2">
         {tasks.length === 0 ? (
           <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 text-center gap-3"
+            className="flex flex-col items-center justify-center py-20 text-center gap-4"
           >
-            <span className="text-5xl">🚀</span>
-            <p className="text-muted-foreground">{t("noTasks")}</p>
+            <span className="text-7xl">🚀</span>
+            <p className="font-fredoka text-xl font-semibold text-amber-700/70">{t("noTasks")}</p>
           </m.div>
         ) : (
           <>
             {groups.map((group) => {
               const groupTasks = grouped[group].filter((t) => !optimisticCompleted.has(t.id));
               if (groupTasks.length === 0) return null;
+              const { accent } = GROUP_COLORS[group];
               return (
-                <section key={group} className="space-y-2">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                    {GROUP_LABELS[group]}
-                  </h2>
+                <section key={group} className="space-y-3">
+                  {/* Colorful section header */}
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl leading-none">{GROUP_EMOJI[group]}</span>
+                    <span
+                      className="font-fredoka text-lg font-semibold leading-none"
+                      style={{ color: accent }}
+                    >
+                      {GROUP_LABELS[group]}
+                    </span>
+                    <div className="flex-1 h-0.5 rounded-full" style={{ background: accent + "40" }} />
+                  </div>
                   <AnimatePresence initial={false}>
                     {groupTasks.map((task) => (
                       <TaskItem
                         key={task.id}
                         task={task}
+                        group={group}
                         done={false}
                         showNearMiss={nearMissTaskId === task.id}
                         onComplete={() => handleComplete(task)}
@@ -277,10 +317,14 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
             })}
 
             {completed.length > 0 && (
-              <section className="space-y-2">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                  Completados ✅
-                </h2>
+              <section className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl leading-none">✅</span>
+                  <span className="font-fredoka text-lg font-semibold leading-none text-emerald-600">
+                    Completadas
+                  </span>
+                  <div className="flex-1 h-0.5 rounded-full bg-emerald-200" />
+                </div>
                 {completed.map((task) => {
                   const comp = completions.find((c) => c.task_id === task.id);
                   const isPending = pendingCompletedIds.has(task.id);
@@ -288,6 +332,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
                     <TaskItem
                       key={task.id}
                       task={task}
+                      group={timeGroup(task.due_time)}
                       done
                       pendingSync={isPending}
                       pointsAwarded={comp?.points_awarded ?? (isPending ? task.points : null)}
@@ -307,6 +352,7 @@ export function TodayClient({ profile, tasks, completedIds: initialCompleted, co
 
 function TaskItem({
   task,
+  group,
   done,
   onComplete,
   pointsAwarded,
@@ -314,93 +360,117 @@ function TaskItem({
   pendingSync = false,
 }: {
   task: Task;
+  group: Group;
   done: boolean;
   onComplete?: () => void;
   pointsAwarded?: number | null;
   showNearMiss?: boolean;
   pendingSync?: boolean;
 }) {
+  const { accent, bg } = GROUP_COLORS[group];
+
   return (
     <m.div
       layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: done ? 0.55 : 1, y: 0 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: done ? 0.6 : 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 28 }}
-      className={`flex items-center gap-4 rounded-2xl border p-4 ${
-        done ? "border-border bg-muted/40" : "border-border bg-card"
-      }`}
+      className="flex items-center gap-3 rounded-3xl bg-white p-3 shadow-sm"
+      style={{ borderLeft: `5px solid ${done ? "#10b981" : accent}` }}
     >
-      <span className="text-3xl shrink-0">{task.emoji ?? "✅"}</span>
+      {/* Emoji bubble */}
+      <div
+        className="relative shrink-0 size-14 rounded-2xl flex items-center justify-center text-3xl"
+        style={{ background: done ? "#ecfdf5" : bg }}
+      >
+        {task.emoji ?? "⭐"}
+        {done && (
+          <span
+            className="animate-stamp absolute inset-0 flex items-center justify-center rounded-2xl text-xl font-black text-emerald-600"
+            style={{ background: "rgba(236,253,245,0.85)" }}
+          >
+            ✓
+          </span>
+        )}
+      </div>
 
+      {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className={`font-semibold truncate ${done ? "line-through text-muted-foreground" : ""}`}>
+        <p
+          className={`font-fredoka text-base font-semibold leading-tight ${
+            done ? "line-through text-gray-400" : "text-gray-800"
+          }`}
+        >
           {task.title}
         </p>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           {task.due_time && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs text-gray-400">
               <Clock className="size-3" />
               {task.due_time.slice(0, 5)}
             </span>
           )}
-          <span className={`text-xs font-bold ${done ? "text-success-emerald" : "text-primary"}`}>
-            {done && pointsAwarded ? `+${pointsAwarded} pts` : `${task.points} pts`}
+          <span className="text-xs font-bold text-amber-500">
+            ⭐ {done && pointsAwarded ? `+${pointsAwarded}` : task.points} pts
           </span>
           {pendingSync && (
             <span className="flex items-center gap-1 text-xs text-amber-500 font-medium">
               <RefreshCw className="size-3" />
-              pendiente
+              sync
             </span>
           )}
         </div>
       </div>
 
+      {/* Action button */}
       {done ? (
         <m.div
-          initial={{ scale: 0.85, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          initial={{ scale: 0, rotate: -15 }}
+          animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          className="shrink-0"
         >
           {pendingSync ? (
-            <RefreshCw className="size-8 text-amber-500 shrink-0 animate-spin" />
+            <RefreshCw className="size-8 text-amber-400 animate-spin" />
           ) : (
-            <CheckCircle2 className="size-8 text-success-emerald shrink-0" />
+            <CheckCircle2 className="size-9 text-emerald-500" />
           )}
         </m.div>
       ) : (
         <div className="relative shrink-0">
           <m.button
             onClick={onComplete}
+            whileTap={{ scale: 0.82 }}
             animate={
               showNearMiss
                 ? {
                     boxShadow: [
                       "0 0 0px 0px rgba(251,191,36,0)",
-                      "0 0 12px 4px rgba(251,191,36,0.8)",
+                      "0 0 16px 6px rgba(251,191,36,0.75)",
                       "0 0 0px 0px rgba(251,191,36,0)",
                     ],
                   }
                 : { boxShadow: "0 0 0px 0px rgba(251,191,36,0)" }
             }
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="size-9 flex items-center justify-center rounded-full border-2 border-border hover:border-primary hover:bg-primary/10 active:scale-90 transition-all"
+            className="size-14 rounded-2xl flex items-center justify-center border-2 transition-colors active:brightness-95"
+            style={{ background: bg, borderColor: accent }}
             aria-label={`Completar: ${task.title}`}
           >
-            <Circle className="size-5 text-muted-foreground" />
+            <span className="text-2xl" style={{ color: accent }}>○</span>
           </m.button>
 
-          {/* Near-miss ephemeral text */}
           <AnimatePresence>
             {showNearMiss && (
               <m.span
-                className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-amber-500 pointer-events-none"
+                className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap font-fredoka text-xs font-semibold text-amber-500 pointer-events-none"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25 }}
               >
-                ¡Casi! Sigue así
+                ¡Casi! 💪
               </m.span>
             )}
           </AnimatePresence>

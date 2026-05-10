@@ -26,17 +26,20 @@ export function StreakBadge({ streak, shieldAvailable, todayStr }: Props) {
       <AnimatePresence mode="wait">
         <m.div
           key={streak}
-          initial={{ scale: 0.7, opacity: 0 }}
+          initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold ${
+          className={`flex items-center gap-1.5 rounded-2xl px-3 py-1.5 font-fredoka text-sm font-semibold ${
             streak > 0
-              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-              : "bg-muted text-muted-foreground"
+              ? "bg-amber-400 text-white shadow-sm shadow-amber-300/50"
+              : "bg-gray-100 text-gray-400"
           }`}
         >
           {streak > 0 ? (
-            <>🔥 {streak} {streak === 1 ? "día" : "días"}</>
+            <>
+              <span className="animate-flame inline-block leading-none">🔥</span>
+              {streak} {streak === 1 ? "día" : "días"}
+            </>
           ) : (
             "Sin racha"
           )}
@@ -47,7 +50,7 @@ export function StreakBadge({ streak, shieldAvailable, todayStr }: Props) {
         <button
           onClick={handleShield}
           title="Usar escudo de racha (1 día libre)"
-          className="flex items-center justify-center size-7 rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 hover:bg-sky-200 dark:hover:bg-sky-800/50 transition-colors"
+          className="flex items-center justify-center size-8 rounded-xl bg-sky-100 text-sky-500 hover:bg-sky-200 transition-colors shadow-sm"
         >
           <Shield className="size-4" />
         </button>
